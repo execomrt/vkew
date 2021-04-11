@@ -26,7 +26,7 @@
  ** ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  ** THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 #ifndef __vkew_h__
 #define __vkew_h__
 #define __VKEW_H__
@@ -46,55 +46,45 @@ typedef struct vkewContext VKEWContext;
 extern "C" {
 #endif
 
-	/**
-		Init vulkan
-	*/
-	
-	extern int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation);
-	extern void vkewDestroy(void);
-	/**
-		Init Context
-	*/
-	
-	extern void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f);
-	extern int vkewInitContext(VkInstance instance);
-	extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void * platformWindow);
-	extern void vkewReleaseSurface(void);
-	extern int vkewGetFrameIndex(void);
-	extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, int exclusive, int hdr);
-	extern void vkewReleaseSwapChain(void);
-	extern VkDevice vkewGetDevice(void);
-	extern VkPhysicalDevice vkewGetPhysicalDevice(void);
-	extern VkResult vkewAcquire(uint32_t* frame_index);
-	extern VkImageView vkewGetSwapChainImageView(int i);
-	extern VkQueue vkewGetGraphicsQueue(void);
-	extern int vkewGetGraphicsQueueFamilyIndex(void);
-	extern VkResult vkewClearCommand(void);
-	extern uint32_t vkewGetPresentQueueCmdBuffers(void);
-	extern VkCommandBuffer vkewGetPresentQueueCommandBuffer(int i);
-	extern VkShaderModule vkewCreateShaderModule(const char* code, size_t length);
-	extern VkFormat vkewGetColorFormat(void);
-	extern VkCommandBuffer vkewBeginSingleTimeCommands(void);
-	extern void vkewEndSingleTimeCommands(VkCommandBuffer commandBuffer);
-	extern void vkewEndSingleTimeCommandsWithSemaphores(VkCommandBuffer commandBuffer, int waitSemaphoreCount, const VkSemaphore* pWaitSemaphores, const VkPipelineStageFlags* pWaitDstStageMask);
-	extern VkResult vkewCheckExtensionAvailability(const char *extension_name);
-	extern uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR*surface_capabilities);
-	extern VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, int hdr);
-	extern VkExtent2D vkewGetSwapChainExtent(const VkSurfaceCapabilitiesKHR *surface_capabilities);
-	extern VkImageUsageFlags vkewGetSwapChainUsageFlags(const VkSurfaceCapabilitiesKHR*surface_capabilities);
-	extern VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities);
-	extern VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync);
-	extern VkSwapchainKHR vkewGetSwapChain(void);
-	extern VkExtent2D vkewGetSwapChainExtent2D(void);
-	extern void vkewLogMessage(const char* pszFormat, ...);	
-	extern VkInstance vkewGetInstance(void);
+	extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent, int full_screen_exclusive, VkFormat colorFormat);
+	extern VkBool32 vkewCreateSwapChainImageViews(void);
 	extern VkCommandPool vkewGetPresentQueuePool(void);
-	extern VkResult vkewQueueSubmit(const VkCommandBuffer* pCommandBuffers, uint32_t commandBufferCount, VkPipelineStageFlags wait_dst_stage_mask, const VkSemaphore* pWaitSemaphores, const VkSemaphore* pSignalSemaphores);
-	extern VkResult vkewQueuePresent(void);
-	extern VkResult vkewCreateCommandBuffers(void);
-	extern VkResult vkewInitDescriptorPool(uint32_t descriptorSetCount, VkDescriptorPool* Pool, int maxSets);
+	extern VkDevice vkewGetDevice(void);
+	extern VkExtent2D vkewGetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface_capabilities);
+	extern VkExtent2D vkewGetSwapChainExtent2D(void);
+	extern VkFormat vkewGetColorFormat(void);
+	extern VkImageUsageFlags vkewGetSwapChainUsageFlags(const VkSurfaceCapabilitiesKHR* surface_capabilities);
+	extern VkImageView vkewGetSwapChainImageView(int i);
+	extern VkInstance vkewGetInstance(void);
+	extern VkPhysicalDevice vkewGetPhysicalDevice(void);
+	extern VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync);
+	extern VkQueue vkewGetGraphicsQueue(void);
+	extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
+	extern VkResult vkewCreateCommandPool(void);
+	extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat);
+	extern VkResult vkewDestroyCommandPool(void);
+	extern VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, VkFormat colorFormat);
+	extern VkSurfaceKHR vkewGetPresentationSurface();
+	extern VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities);
+	extern VkSwapchainKHR vkewGetSwapChain(void);
+	extern int vkewGetFrameIndex(void);
+	extern int vkewGetGraphicsQueueFamilyIndex(void);
+	extern int vkewGetSwapChainCount(void);
+	extern int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation);
+	extern int vkewSupportsFullscreenExclusive(void);
+	extern uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surface_capabilities);
+	extern void vkewDestroy(void);
+	extern void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f);
+	extern void vkewLogMessage(const char* pszFormat, ...);
+	extern void vkewReleaseSurface(void);
+	extern void vkewReleaseSwapChain(void);
+	extern void vkewWaitIdle(void);
+
 
 #if defined VK_NO_PROTOTYPES
+
+
+
 
 	extern PFN_vkCreateInstance vkCreateInstance;
 	extern PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
@@ -140,8 +130,11 @@ extern "C" {
 	extern PFN_vkDestroyImageView vkDestroyImageView;
 	extern PFN_vkCreateSemaphore vkCreateSemaphore;
 	extern PFN_vkDestroySemaphore vkDestroySemaphore;
+	extern PFN_vkWaitSemaphores vkWaitSemaphores;
 	extern PFN_vkCreateFence vkCreateFence;
 	extern PFN_vkDestroyFence vkDestroyFence;
+	extern PFN_vkGetFenceStatus vkGetFenceStatus;
+	extern PFN_vkResetFences vkResetFences;
 	extern PFN_vkWaitForFences vkWaitForFences;
 	extern PFN_vkCreateCommandPool vkCreateCommandPool;
 	extern PFN_vkDestroyCommandPool vkDestroyCommandPool;
@@ -149,6 +142,17 @@ extern "C" {
 	extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
 	extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
 	extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
+
+
+	extern PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
+	extern PFN_vkCmdResetEvent2KHR vkCmdResetEvent2KHR;
+	extern PFN_vkCmdSetEvent2KHR vkCmdSetEvent2KHR;
+	extern PFN_vkCmdWaitEvents2KHR vkCmdWaitEvents2KHR;
+	extern PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR;
+	extern PFN_vkQueueSubmit2KHR vkQueueSubmit2KHR;
+
+
+	extern PFN_vkResetDescriptorPool vkResetDescriptorPool;
 	extern PFN_vkQueueSubmit vkQueueSubmit;
 	extern PFN_vkQueueWaitIdle vkQueueWaitIdle;
 	extern PFN_vkDeviceWaitIdle vkDeviceWaitIdle;
@@ -161,6 +165,7 @@ extern "C" {
 	extern PFN_vkCreateDescriptorSetLayout vkCreateDescriptorSetLayout;
 	extern PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets;
 	extern PFN_vkUpdateDescriptorSets vkUpdateDescriptorSets;
+
 	extern PFN_vkCmdBindDescriptorSets vkCmdBindDescriptorSets;
 	extern PFN_vkCmdBindPipeline vkCmdBindPipeline;
 	extern PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
@@ -181,6 +186,8 @@ extern "C" {
 	extern PFN_vkDestroyPipeline vkDestroyPipeline;
 	extern PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;
 	extern PFN_vkDestroyDescriptorSetLayout vkDestroyDescriptorSetLayout;
+	extern PFN_vkFreeDescriptorSets vkFreeDescriptorSets;
+
 	extern PFN_vkDestroyDevice vkDestroyDevice;
 	extern PFN_vkDestroyInstance vkDestroyInstance;
 	extern PFN_vkDestroyDescriptorPool vkDestroyDescriptorPool;
@@ -220,6 +227,16 @@ extern "C" {
 #endif
 
 
+#ifdef VK_KHR_display
+	extern VkBool32 VKEW_KHR_display;
+	extern PFN_vkGetPhysicalDeviceDisplayPropertiesKHR vkGetPhysicalDeviceDisplayPropertiesKHR;
+	extern PFN_vkGetPhysicalDeviceDisplayPlanePropertiesKHR vkGetPhysicalDeviceDisplayPlanePropertiesKHR;
+	extern PFN_vkGetDisplayPlaneSupportedDisplaysKHR vkGetDisplayPlaneSupportedDisplaysKHR;
+	extern PFN_vkGetDisplayModePropertiesKHR vkGetDisplayModePropertiesKHR;
+	extern PFN_vkCreateDisplayModeKHR vkCreateDisplayModeKHR;
+	extern PFN_vkGetDisplayPlaneCapabilitiesKHR vkGetDisplayPlaneCapabilitiesKHR;
+	extern PFN_vkCreateDisplayPlaneSurfaceKHR vkCreateDisplayPlaneSurfaceKHR;
+#endif
 
 #ifdef VK_EXT_debug_marker
 	extern VkBool32 VKEW_EXT_debug_marker;
@@ -231,7 +248,22 @@ extern "C" {
 	extern PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT;
 	extern PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTagEXT;
 #endif
-		
+
+#endif
+
+
+#ifdef VK_KHR_synchronization2 
+
+	extern VkBool32 VKEW_KHR_get_surface_capabilities2;
+#if defined VK_NO_PROTOTYPES
+	extern PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
+	extern PFN_vkCmdResetEvent2KHR vkCmdResetEvent2KHR;
+	extern PFN_vkCmdSetEvent2KHR vkCmdSetEvent2KHR;
+	extern PFN_vkCmdWaitEvents2KHR vkCmdWaitEvents2KHR;
+	extern PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR;
+	extern PFN_vkQueueSubmit2KHR vkQueueSubmit2KHR;
+#endif
+
 #endif
 
 
