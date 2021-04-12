@@ -1,6 +1,6 @@
 ﻿/*
  ** The Vulkan Extension Wrangler Library
- ** Copyright (C) 2020 Stephane Denis
+ ** Copyright (C) 2021 Stephane Denis
  ** All rights reserved.
  **
  ** Redistribution and use in source and binary forms, with or without
@@ -327,6 +327,21 @@ struct vkewContext
 typedef struct vkewContext VKEWContext;
 static VKEWContext Vulkan;
 
+static void AddExtensionLayer(const char* name)
+{
+	Vulkan.enabledExtensions[Vulkan.enabledExtensionCount] = name;
+	Vulkan.enabledExtensionCount++;
+}
+static int HasExtensionLayer(const char* name)
+{
+	for (int i = 0; i < Vulkan.enabledExtensionCount; i++)
+		if (!strcmp(Vulkan.enabledExtensions[i], name))
+			return 1;
+	return 0;
+}
+
+
+
 static void* vkewGetProcAddress(const char* name)
 {
 #ifdef WIN32
@@ -473,6 +488,16 @@ VKEW_GET_FUNCTION(vkResetFences);
 VKEW_GET_FUNCTION(vkUnmapMemory);
 VKEW_GET_FUNCTION(vkUpdateDescriptorSets);
 VKEW_GET_FUNCTION(vkWaitForFences);
+
+VKEW_GET_FUNCTION(vkGetBufferMemoryRequirements2KHR);
+VKEW_GET_FUNCTION(vkGetBufferMemoryRequirements2);
+VKEW_GET_FUNCTION(vkBindBufferMemory2);
+VKEW_GET_FUNCTION(vkBindImageMemory2);
+VKEW_GET_FUNCTION(vkGetImageMemoryRequirements2);
+VKEW_GET_FUNCTION(vkGetPhysicalDeviceMemoryProperties2);
+
+
+
 #ifdef VK_KHR_xlib_surface
 VKEW_GET_FUNCTION(vkCreateXlibSurfaceKHR);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceXlibPresentationSupportKHR);
@@ -515,8 +540,10 @@ PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT;
 PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTagEXT;
 #endif
 VkBool32 VKEW_EXT_debug_marker;
-static int vkewInit_VK_EXT_debug_marker(VkInterface value)
+static int vkewInit_VK_EXT_debug_markerVK_EXT_debug_marker(VkInterface value)
 {
+	if (!HasExtensionLayer(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+		return 0;
 	VKEW_GET_FUNCTION(vkCmdDebugMarkerBeginEXT);
 	VKEW_GET_FUNCTION(vkCmdDebugMarkerEndEXT);
 	VKEW_GET_FUNCTION(vkCmdDebugMarkerInsertEXT);
@@ -781,7 +808,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_EXT_full_screen_exclusive = 0; // Not ready for prime time. vkewInit_VK_EXT_full_screen_exclusive(value);
 #endif
 #ifdef VK_EXT_debug_marker
-	VKEW_EXT_debug_marker = vkewInit_VK_EXT_debug_marker(value);
+	VKEW_EXT_debug_marker = 0; // Not ready for prime time : null pointer exception vkewInit_VK_EXT_debug_marker(value);
 #endif
 
 #if defined VK_NO_PROTOTYPES
@@ -881,6 +908,13 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_FUNCTION(vkUpdateDescriptorSets);
 	VKEW_GET_FUNCTION(vkWaitForFences);
 
+	VKEW_GET_FUNCTION(vkGetBufferMemoryRequirements2KHR);
+	VKEW_GET_FUNCTION(vkGetBufferMemoryRequirements2);
+	VKEW_GET_FUNCTION(vkBindBufferMemory2);
+	VKEW_GET_FUNCTION(vkBindImageMemory2);
+	VKEW_GET_FUNCTION(vkGetImageMemoryRequirements2);
+	VKEW_GET_FUNCTION(vkGetPhysicalDeviceMemoryProperties2);
+
 #endif
 #ifdef VK_EXT_full_screen_exclusive
 #endif
@@ -917,6 +951,8 @@ int vkewSupportsFullscreenExclusive(void)
 void vkewDestroy(void)
 {
 	if (Vulkan.i.device != VK_NULL_HANDLE) {
+		vkDeviceWaitIdle(Vulkan.i.device);
+		vkDestroyDevice(Vulkan.i.device, NULL);		
 		Vulkan.i.device = VK_NULL_HANDLE;
 	}
 	if (Vulkan.presentationSurface != VK_NULL_HANDLE) {
@@ -1129,55 +1165,56 @@ static int InitValidationLayers(int enableValidation)
 	}
 	return 0;
 }
-static void AddExtension(const char* name)
-{
-	Vulkan.enabledExtensions[Vulkan.enabledExtensionCount] = name;
-	Vulkan.enabledExtensionCount++;
-}
+
 static void InitExtensionsLayers(int enableValidation)
 {
 	int platformSurfaceExtFound = 0;
 	uint32_t instance_extension_count = 0;
-	int surfaceExtFound = 0;
+	int surfaceExtFound = 0;	
 	VkResult err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, NULL);
 	if (instance_extension_count > 0) {
 		VkExtensionProperties* instance_extensions = malloc(sizeof(VkExtensionProperties) * instance_extension_count);
 		err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, instance_extensions);
 		for (int32_t i = 0; i < (int32_t)instance_extension_count; i++) {
+
 			if (!strcmp(VK_KHR_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				surfaceExtFound = 1;
-				AddExtension(VK_KHR_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_SURFACE_EXTENSION_NAME);
+			} 
+
+			if (!strcmp(VK_EXT_DEBUG_MARKER_EXTENSION_NAME, instance_extensions[i].extensionName)) {				
+				AddExtensionLayer(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 			}
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 			if (!strcmp(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			}
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 			if (!strcmp(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 			}
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 			if (!strcmp(VK_KHR_XCB_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 			}
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 			if (!strcmp(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 			}
 #elif defined(VK_USE_PLATFORM_MIR_KHR)
 #elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
 			if (!strcmp(VK_KHR_DISPLAY_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_KHR_DISPLAY_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_DISPLAY_EXTENSION_NAME);
 			}
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 			if (!strcmp(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 			}
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
 			if (!strcmp(VK_MVK_IOS_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
@@ -1187,27 +1224,28 @@ static void InitExtensionsLayers(int enableValidation)
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
 			if (!strcmp(VK_MVK_MACOS_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
-				AddExtension(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+				AddExtensionLayer(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 			}
 #endif
 #ifdef USE_EXT_debug_report
 			// Old
 			if (!strcmp(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				if (enableValidation) {
-					AddExtension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+					AddExtensionLayer(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 				}
 			}
 #else
 			// New
 			if (!strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				if (enableValidation) {
-					AddExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+					AddExtensionLayer(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				}
 			}
 #endif
 		}
 		free(instance_extensions);
 	}
+
 	if (!surfaceExtFound) {
 		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
@@ -1431,22 +1469,8 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
 *
 * @return VkResult of the image acquisition
 */
-int vkewGetFrameIndex(void)
-{
-	return Vulkan.frame_index;
-}
 
 
-void vkewReleaseSurface(void)
-{
-	if (Vulkan.i.device != VK_NULL_HANDLE) {
-
-		vkDeviceWaitIdle(Vulkan.i.device);
-		vkDestroyDevice(Vulkan.i.device, NULL);
-		Vulkan.i.device = VK_NULL_HANDLE;
-	}
-
-}
 
 VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, uint32_t* selected_graphics_queue_family_index, uint32_t* selected_present_queue_family_index) {
 	uint32_t extensions_count = 0;
@@ -1842,10 +1866,6 @@ VkBool32 vkewCreateSwapChainImageViews(void) {
 		}
 	}
 	return VK_TRUE;
-}
-void vkewWaitIdle(void)
-{
-	vkDeviceWaitIdle(Vulkan.i.device);
 }
 
 // Create swap chain

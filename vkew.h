@@ -26,27 +26,22 @@
  ** ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  ** THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #ifndef __vkew_h__
 #define __vkew_h__
 #define __VKEW_H__
-
 #define VK_NO_PROTOTYPES 1
-
 #include "vulkan/vulkan.h"
-
 #if defined _WIN32 && defined _INC_WINDOWS
 #include "vulkan/vulkan_win32.h"
 #endif
-
 typedef struct vkewContext VKEWContext;
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+	extern int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation);
+	extern void vkewDestroy(void);	
+	extern void vkewLogMessage(const char* pszFormat, ...);
 
-	extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent, int full_screen_exclusive, VkFormat colorFormat);
 	extern VkBool32 vkewCreateSwapChainImageViews(void);
 	extern VkCommandPool vkewGetPresentQueuePool(void);
 	extern VkDevice vkewGetDevice(void);
@@ -62,30 +57,20 @@ extern "C" {
 	extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
 	extern VkResult vkewCreateCommandPool(void);
 	extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat);
+	extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent, int full_screen_exclusive, VkFormat colorFormat);
 	extern VkResult vkewDestroyCommandPool(void);
 	extern VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, VkFormat colorFormat);
 	extern VkSurfaceKHR vkewGetPresentationSurface();
 	extern VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities);
 	extern VkSwapchainKHR vkewGetSwapChain(void);
-	extern int vkewGetFrameIndex(void);
 	extern int vkewGetGraphicsQueueFamilyIndex(void);
 	extern int vkewGetSwapChainCount(void);
-	extern int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation);
 	extern int vkewSupportsFullscreenExclusive(void);
 	extern uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surface_capabilities);
-	extern void vkewDestroy(void);
 	extern void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f);
-	extern void vkewLogMessage(const char* pszFormat, ...);
-	extern void vkewReleaseSurface(void);
 	extern void vkewReleaseSwapChain(void);
-	extern void vkewWaitIdle(void);
-
 
 #if defined VK_NO_PROTOTYPES
-
-
-
-
 	extern PFN_vkCreateInstance vkCreateInstance;
 	extern PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
 	extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
@@ -142,16 +127,12 @@ extern "C" {
 	extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
 	extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
 	extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
-
-
 	extern PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
 	extern PFN_vkCmdResetEvent2KHR vkCmdResetEvent2KHR;
 	extern PFN_vkCmdSetEvent2KHR vkCmdSetEvent2KHR;
 	extern PFN_vkCmdWaitEvents2KHR vkCmdWaitEvents2KHR;
 	extern PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR;
 	extern PFN_vkQueueSubmit2KHR vkQueueSubmit2KHR;
-
-
 	extern PFN_vkResetDescriptorPool vkResetDescriptorPool;
 	extern PFN_vkQueueSubmit vkQueueSubmit;
 	extern PFN_vkQueueWaitIdle vkQueueWaitIdle;
@@ -165,7 +146,6 @@ extern "C" {
 	extern PFN_vkCreateDescriptorSetLayout vkCreateDescriptorSetLayout;
 	extern PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets;
 	extern PFN_vkUpdateDescriptorSets vkUpdateDescriptorSets;
-
 	extern PFN_vkCmdBindDescriptorSets vkCmdBindDescriptorSets;
 	extern PFN_vkCmdBindPipeline vkCmdBindPipeline;
 	extern PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
@@ -176,18 +156,14 @@ extern "C" {
 	extern PFN_vkCmdSetDepthBias vkCmdSetDepthBias;
 	extern PFN_vkCmdPushConstants vkCmdPushConstants;
 	extern PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
-
 	extern PFN_vkCmdDrawIndirect vkCmdDrawIndirect;
 	extern PFN_vkCmdDrawIndexedIndirect vkCmdDrawIndexedIndirect;
-
-
 	extern PFN_vkCmdDraw vkCmdDraw;
 	extern PFN_vkCmdDispatch vkCmdDispatch;
 	extern PFN_vkDestroyPipeline vkDestroyPipeline;
 	extern PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;
 	extern PFN_vkDestroyDescriptorSetLayout vkDestroyDescriptorSetLayout;
 	extern PFN_vkFreeDescriptorSets vkFreeDescriptorSets;
-
 	extern PFN_vkDestroyDevice vkDestroyDevice;
 	extern PFN_vkDestroyInstance vkDestroyInstance;
 	extern PFN_vkDestroyDescriptorPool vkDestroyDescriptorPool;
@@ -218,15 +194,18 @@ extern "C" {
 	extern PFN_vkFlushMappedMemoryRanges vkFlushMappedMemoryRanges;
 	extern PFN_vkInvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges;
 
+
+	extern PFN_vkGetBufferMemoryRequirements2KHR vkGetBufferMemoryRequirements2KHR;
+	extern PFN_vkGetBufferMemoryRequirements2 vkGetBufferMemoryRequirements2;
+	extern PFN_vkBindBufferMemory2 vkBindBufferMemory2;
+	extern PFN_vkBindImageMemory2 vkBindImageMemory2;
+	extern PFN_vkGetImageMemoryRequirements2 vkGetImageMemoryRequirements2;
+	extern PFN_vkGetPhysicalDeviceMemoryProperties2 vkGetPhysicalDeviceMemoryProperties2;
 #endif
-
-
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT;
 	extern PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT;
 #endif
-
-
 #ifdef VK_KHR_display
 	extern VkBool32 VKEW_KHR_display;
 	extern PFN_vkGetPhysicalDeviceDisplayPropertiesKHR vkGetPhysicalDeviceDisplayPropertiesKHR;
@@ -237,10 +216,8 @@ extern "C" {
 	extern PFN_vkGetDisplayPlaneCapabilitiesKHR vkGetDisplayPlaneCapabilitiesKHR;
 	extern PFN_vkCreateDisplayPlaneSurfaceKHR vkCreateDisplayPlaneSurfaceKHR;
 #endif
-
 #ifdef VK_EXT_debug_marker
 	extern VkBool32 VKEW_EXT_debug_marker;
-
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkCmdDebugMarkerBeginEXT vkCmdDebugMarkerBeginEXT;
 	extern PFN_vkCmdDebugMarkerEndEXT vkCmdDebugMarkerEndEXT;
@@ -248,12 +225,8 @@ extern "C" {
 	extern PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT;
 	extern PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTagEXT;
 #endif
-
 #endif
-
-
 #ifdef VK_KHR_synchronization2 
-
 	extern VkBool32 VKEW_KHR_get_surface_capabilities2;
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
@@ -263,24 +236,15 @@ extern "C" {
 	extern PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR;
 	extern PFN_vkQueueSubmit2KHR vkQueueSubmit2KHR;
 #endif
-
 #endif
-
-
-
-
 #ifdef VK_KHR_get_surface_capabilities2 
-
 	extern VkBool32 VKEW_KHR_get_surface_capabilities2;
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR vkGetPhysicalDeviceSurfaceCapabilities2KHR;
 	extern PFN_vkGetPhysicalDeviceSurfaceFormats2KHR vkGetPhysicalDeviceSurfaceFormats2KHR;
 #endif
-
 #endif
-
 #ifdef VK_EXT_full_screen_exclusive
-
 	extern VkBool32 VKEW_EXT_full_screen_exclusive;
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT vkGetPhysicalDeviceSurfacePresentModes2EXT;
@@ -288,11 +252,7 @@ extern "C" {
 	extern PFN_vkAcquireFullScreenExclusiveModeEXT vkAcquireFullScreenExclusiveModeEXT;
 	extern PFN_vkReleaseFullScreenExclusiveModeEXT vkReleaseFullScreenExclusiveModeEXT;
 #endif
-
 #endif
-
-
-
 #ifdef VK_EXT_debug_utils
 	extern VkBool32 VKEW_EXT_debug_utils;
 #if defined VK_NO_PROTOTYPES
@@ -305,67 +265,42 @@ extern "C" {
 	extern PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
 #endif
 #endif
-
-
 #ifdef VK_KHR_xlib_surface
-
 	extern PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR;
 	extern PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR vkGetPhysicalDeviceXlibPresentationSupportKHR;
-
 #endif /* VK_USE_PLATFORM_XLIB_KHR */
-
 #ifdef VK_KHR_xcb_surface
-
 	extern PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHR;
 	extern PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR vkGetPhysicalDeviceXcbPresentationSupportKHR;
-
 #endif /* VK_USE_PLATFORM_XCB_KHR */	
-
-
 #ifdef VK_KHR_wayland_surface
-
 	extern PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR;
 	extern PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR kGetPhysicalDeviceWaylandPresentationSupportKHR;
-
 #endif /* VK_USE_PLATFORM_WAYLAND_KHR */
-
 #ifdef VK_KHR_mir_surface
-
 	extern PFN_vkCreateMirSurfaceKHR vkCreateMirSurfaceKHR;
 	extern PFN_vkGetPhysicalDeviceMirPresentationSupportKHR vkGetPhysicalDeviceMirPresentationSupportKHR;
-
 #endif /* VK_USE_PLATFORM_MIR_KHR */
-
 #ifdef VK_KHR_android_surface
-
 	extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 	extern int VKEW_KHR_android_surface;
-
 #endif /* VK_USE_PLATFORM_ANDROID_KHR */ 
-
 #ifdef VK_KHR_win32_surface
-
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
 	extern PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR;
 #endif
-
 	extern int VKEW_KHR_win32_surface;
-
 #endif /* VK_USE_PLATFORM_WIN32_KHR */
-
 #ifdef _DEBUG
 	extern VkResult vkewPrintResult(VkResult result, const char* file, int line);
 #define VK_CHECK(result) vkewPrintResult(result, __FILE__, __LINE__)
 #else
 #define VK_CHECK(result) result
 #endif
-
 	extern VkBool32 VKEW_EXT_debug_report;
 	extern VkBool32 VKEW_EXT_debug_utils;
-
 #ifdef __cplusplus
 }
 #endif
-
 #endif
