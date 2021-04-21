@@ -39,11 +39,11 @@ typedef struct vkewContext VKEWContext;
 extern "C" {
 #endif
 	extern int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation);
-	extern void vkewDestroy(void);	
+	extern void vkewDestroy(void);
 	extern void vkewLogMessage(const char* pszFormat, ...);
 
 	extern VkBool32 vkewCreateSwapChainImageViews(void);
-	extern VkCommandPool vkewGetPresentQueuePool(void);
+
 	extern VkDevice vkewGetDevice(void);
 	extern VkExtent2D vkewGetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface_capabilities);
 	extern VkExtent2D vkewGetSwapChainExtent2D(void);
@@ -55,10 +55,10 @@ extern "C" {
 	extern VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync);
 	extern VkQueue vkewGetGraphicsQueue(void);
 	extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
-	extern VkResult vkewCreateCommandPool(void);
+
 	extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat);
 	extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent, int full_screen_exclusive, VkFormat colorFormat);
-	extern VkResult vkewDestroyCommandPool(void);
+	extern int vkewGetQueueNodeIndex(void);
 	extern VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, VkFormat colorFormat);
 	extern VkSurfaceKHR vkewGetPresentationSurface();
 	extern VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities);
@@ -98,6 +98,7 @@ extern "C" {
 	extern PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
 	extern PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 	extern PFN_vkCmdCopyBufferToImage vkCmdCopyBufferToImage;
+	extern PFN_vkCmdCopyImageToBuffer vkCmdCopyImageToBuffer;
 	extern PFN_vkCmdCopyImage vkCmdCopyImage;
 	extern PFN_vkCmdBlitImage vkCmdBlitImage;
 	extern PFN_vkCmdClearAttachments vkCmdClearAttachments;
@@ -123,9 +124,12 @@ extern "C" {
 	extern PFN_vkWaitForFences vkWaitForFences;
 	extern PFN_vkCreateCommandPool vkCreateCommandPool;
 	extern PFN_vkDestroyCommandPool vkDestroyCommandPool;
+	extern PFN_vkResetCommandPool vkResetCommandPool;
 	extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
 	extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
 	extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
+
+
 	extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
 	extern PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
 	extern PFN_vkCmdResetEvent2KHR vkCmdResetEvent2KHR;

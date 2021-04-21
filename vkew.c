@@ -309,7 +309,7 @@ struct vkewContext
 	VkDebugReportCallbackEXT messageCallback;
 	int presentQueueCmdBuffersCount;
 	VkCommandBuffer* presentQueueCmdBuffers;
-	VkCommandPool presentQueueCmdPool;
+
 	/*
 	VkSemaphore presentCompleteSemaphore[MAX_FENCES];
 	VkSemaphore renderCompleteSemaphore[MAX_FENCES];
@@ -409,6 +409,7 @@ VKEW_GET_FUNCTION(vkCmdClearAttachments);
 VKEW_GET_FUNCTION(vkCmdClearColorImage);
 VKEW_GET_FUNCTION(vkCmdCopyBuffer);
 VKEW_GET_FUNCTION(vkCmdCopyBufferToImage);
+VKEW_GET_FUNCTION(vkCmdCopyImageToBuffer);
 VKEW_GET_FUNCTION(vkCmdCopyImage);
 VKEW_GET_FUNCTION(vkCmdCopyQueryPoolResults);
 VKEW_GET_FUNCTION(vkCmdDispatch);
@@ -485,6 +486,7 @@ VKEW_GET_FUNCTION(vkQueueSubmit);
 VKEW_GET_FUNCTION(vkQueueWaitIdle);
 VKEW_GET_FUNCTION(vkResetDescriptorPool);
 VKEW_GET_FUNCTION(vkResetFences);
+VKEW_GET_FUNCTION(vkResetCommandPool);
 VKEW_GET_FUNCTION(vkUnmapMemory);
 VKEW_GET_FUNCTION(vkUpdateDescriptorSets);
 VKEW_GET_FUNCTION(vkWaitForFences);
@@ -830,6 +832,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_FUNCTION(vkCmdClearColorImage);
 	VKEW_GET_FUNCTION(vkCmdCopyBuffer);
 	VKEW_GET_FUNCTION(vkCmdCopyBufferToImage);
+	VKEW_GET_FUNCTION(vkCmdCopyImageToBuffer);
 	VKEW_GET_FUNCTION(vkCmdCopyImage);
 	VKEW_GET_FUNCTION(vkCmdCopyQueryPoolResults);
 	VKEW_GET_FUNCTION(vkCmdDispatch);
@@ -904,6 +907,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_FUNCTION(vkQueueWaitIdle);
 	VKEW_GET_FUNCTION(vkResetDescriptorPool);
 	VKEW_GET_FUNCTION(vkResetFences);
+	VKEW_GET_FUNCTION(vkResetCommandPool);
 	VKEW_GET_FUNCTION(vkUnmapMemory);
 	VKEW_GET_FUNCTION(vkUpdateDescriptorSets);
 	VKEW_GET_FUNCTION(vkWaitForFences);
@@ -952,7 +956,7 @@ void vkewDestroy(void)
 {
 	if (Vulkan.i.device != VK_NULL_HANDLE) {
 		vkDeviceWaitIdle(Vulkan.i.device);
-		vkDestroyDevice(Vulkan.i.device, NULL);		
+		vkDestroyDevice(Vulkan.i.device, NULL);
 		Vulkan.i.device = VK_NULL_HANDLE;
 	}
 	if (Vulkan.presentationSurface != VK_NULL_HANDLE) {
@@ -1170,7 +1174,7 @@ static void InitExtensionsLayers(int enableValidation)
 {
 	int platformSurfaceExtFound = 0;
 	uint32_t instance_extension_count = 0;
-	int surfaceExtFound = 0;	
+	int surfaceExtFound = 0;
 	VkResult err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, NULL);
 	if (instance_extension_count > 0) {
 		VkExtensionProperties* instance_extensions = malloc(sizeof(VkExtensionProperties) * instance_extension_count);
@@ -1180,9 +1184,9 @@ static void InitExtensionsLayers(int enableValidation)
 			if (!strcmp(VK_KHR_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				surfaceExtFound = 1;
 				AddExtensionLayer(VK_KHR_SURFACE_EXTENSION_NAME);
-			} 
+			}
 
-			if (!strcmp(VK_EXT_DEBUG_MARKER_EXTENSION_NAME, instance_extensions[i].extensionName)) {				
+			if (!strcmp(VK_EXT_DEBUG_MARKER_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				AddExtensionLayer(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 			}
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -1225,7 +1229,7 @@ static void InitExtensionsLayers(int enableValidation)
 			if (!strcmp(VK_MVK_MACOS_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
 				AddExtensionLayer(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
-			}
+		}
 #endif
 #ifdef USE_EXT_debug_report
 			// Old
@@ -1233,7 +1237,7 @@ static void InitExtensionsLayers(int enableValidation)
 				if (enableValidation) {
 					AddExtensionLayer(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 				}
-			}
+	}
 #else
 			// New
 			if (!strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, instance_extensions[i].extensionName)) {
@@ -1242,7 +1246,7 @@ static void InitExtensionsLayers(int enableValidation)
 				}
 			}
 #endif
-		}
+}
 		free(instance_extensions);
 	}
 
@@ -1822,10 +1826,7 @@ int vkewGetSwapChainCount(void)
 	return Vulkan.swapChainParams.ImagesCount;
 }
 
-VkCommandPool vkewGetPresentQueuePool(void)
-{
-	return Vulkan.presentQueueCmdPool;
-}
+
 VkQueue vkewGetGraphicsQueue(void)
 {
 	return Vulkan.queue;
@@ -2031,28 +2032,13 @@ VkPhysicalDevice vkewGetPhysicalDevice()
 }
 
 
-VkResult vkewCreateCommandPool()
-{
-	VkCommandPoolCreateInfo cmd_pool_create_info = {
-		VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,     // VkStructureType              sType
-		NULL,                                        // const void*                  pNext
-		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,       // VkCommandPoolCreateFlags     flags
-		Vulkan.queueNodeIndex                  // uint32_t                     queueFamilyIndex
-	};
-	return vkCreateCommandPool(Vulkan.i.device, &cmd_pool_create_info, NULL, &Vulkan.presentQueueCmdPool);
-}
-
-VkResult vkewDestroyCommandPool()
-{
-
-	if (Vulkan.presentQueueCmdPool != VK_NULL_HANDLE) {
-		vkDestroyCommandPool(vkewGetDevice(), Vulkan.presentQueueCmdPool, NULL);
-		Vulkan.presentQueueCmdPool = VK_NULL_HANDLE;
-	}
-	return (VkResult)0;
-}
-
 VkImageView vkewGetSwapChainImageView(int i)
 {
 	return Vulkan.swapChainParams.Images[i].View;
+}
+
+
+int vkewGetQueueNodeIndex(void)
+{
+	return Vulkan.queueNodeIndex;
 }
