@@ -54,16 +54,19 @@ extern "C" {
 	extern VkPhysicalDevice vkewGetPhysicalDevice(void);
 	extern VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync);
 	extern VkQueue vkewGetGraphicsQueue(void);
+	extern VkQueue vkewGetTransferQueue(void);
 	extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
 
 	extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat);
 	extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent, int full_screen_exclusive, VkFormat colorFormat);
 	extern int vkewGetQueueNodeIndex(void);
+    extern int vkewGetQueueTransfertIndex(void);
 	extern VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, VkFormat colorFormat);
 	extern VkSurfaceKHR vkewGetPresentationSurface();
 	extern VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities);
 	extern VkSwapchainKHR vkewGetSwapChain(void);
-	extern int vkewGetGraphicsQueueFamilyIndex(void);
+	extern uint32_t vkewGetGraphicsQueueFamilyIndex(void);
+	extern uint32_t vkewGetTransfertQueueFamilyIndex(void);
 	extern int vkewGetSwapChainCount(void);
 	extern int vkewSupportsFullscreenExclusive(void);
 	extern uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surface_capabilities);
@@ -247,6 +250,9 @@ extern "C" {
 	extern PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR vkGetPhysicalDeviceSurfaceCapabilities2KHR;
 	extern PFN_vkGetPhysicalDeviceSurfaceFormats2KHR vkGetPhysicalDeviceSurfaceFormats2KHR;
 #endif
+#endif
+#ifdef VK_EXT_robustness2
+	extern VkBool32 VKEW_EXT_robustness2;
 #endif
 #ifdef VK_EXT_full_screen_exclusive
 	extern VkBool32 VKEW_EXT_full_screen_exclusive;
