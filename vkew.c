@@ -27,7 +27,17 @@
  ** THE POSSIBILITY OF SUCH DAMAGE.
   */
 #define VK_NO_PROTOTYPES 1
-#ifdef _WIN32
+
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
+#undef UNIX
+#define UNIX 1
+#endif
+#if defined(linux) || defined(__linux) || defined(__linux__) || defined __ANDROID__
+#undef UNIX 
+#define UNIX 1
+#endif
+
+#ifdef WIN32
   /* Windows */
 #include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR 1
@@ -37,28 +47,40 @@
 #include <stdlib.h>
 #define l_strncat(dest, destsz, src) strncat_s(dest, destsz, src, destsz)
 #define l_snprintf snprintf
-#elif defined __ANDROID__
+#elif defined UNIX
   /* Android */
 #include <stddef.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __ANDROID__
 #include <android/log.h>
 #define VK_USE_PLATFORM_ANDROID_KHR
+#else
+#define VK_USE_PLATFORM_XCB_KHR
+
+#endif
 #define l_strncat(dest, destsz, src) strncat(dest, src, destsz)
 #define l_snprintf snprintf
 #else
-  /* Other */
-#error "Not supported yet"
+#error "Unsupported platform"
 #endif
+
+#ifdef VK_USE_PLATFORM_XCB_KHR
+  // https://harrylovescode.gitbooks.io/vulkan-api/content/chap04/chap04-linux.html
+#include <xcb/xcb.h>
+#endif
+
 #include "vkew.h"
+
+#define APP_SHORT_NAME "vkew"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
-// This is incompatible with Render Doc
-// #define USE_EXT_debug_report
-// Default frame buffer format
+  // This is incompatible with Render Doc
+  // #define USE_EXT_debug_report
+  // Default frame buffer format
 
 typedef struct VkInterface
 {
@@ -76,16 +98,16 @@ typedef struct VkInterface
    You are not obliged to use them but it may help get some extra speed.
 */
 
-static void* vkewGetInstanceProcAddr(VkInstance instance, const char* name)
+static PFN_vkVoidFunction vkewGetInstanceProcAddr(VkInstance instance, const char* name)
 {
 	return vkGetInstanceProcAddr(instance, name);
 }
-static void* vkewGetDeviceProcAddr(VkDevice device, const char* name)
+static PFN_vkVoidFunction vkewGetDeviceProcAddr(VkDevice device, const char* name)
 {
 	return vkGetDeviceProcAddr(device, name);
 }
 
-static void* vkewGetInterfaceProcAddr(VkInterface value, const char* name)
+static PFN_vkVoidFunction vkewGetInterfaceProcAddr(VkInterface value, const char* name)
 {
 	void* ret = value.device ? vkewGetDeviceProcAddr(value.device, name) : vkGetInstanceProcAddr(value.instance, name);
 	if (ret == NULL && value.device != VK_NULL_HANDLE)
@@ -298,8 +320,10 @@ struct vkewContext
 	VkQueue queue;
 	VkQueue transfertQueue;
 	VkSurfaceFormatKHR* surfaceFormats;
+#ifdef VK_EXT_full_screen_exclusive
 	VkSurfaceFullScreenExclusiveInfoEXT surfaceFullScreenExclusiveInfoEXT;
 	VkSurfaceFullScreenExclusiveWin32InfoEXT surfaceFullScreenExclusiveWin32InfoEXT;
+#endif
 	VkSurfaceKHR presentationSurface;
 	const char** enabledExtensions;
 	const char** validationLayerNames;
@@ -322,7 +346,7 @@ struct vkewContext
 	uint32_t transfertQueueFamilyIndex;
 	uint32_t queueNodeIndex;
 
-    uint32_t queueTransfertIndex;
+	uint32_t queueTransfertIndex;
 
 
 };
@@ -348,7 +372,7 @@ static void* vkewGetProcAddress(const char* name)
 {
 #ifdef WIN32
 	return  GetProcAddress((HMODULE)Vulkan.ctx, name);
-#elif defined __ANDROID__	
+#elif defined UNIX
 	return dlsym(Vulkan.ctx, (const char*)name);
 #else
 	return NULL;
@@ -932,7 +956,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 #ifdef VK_EXT_full_screen_exclusive
 #endif
 #ifdef VK_KHR_android_surface
-	vkewInit_VK_KHR_android_surface(device);
+    VKEW_GET_FUNCTION(vkCreateAndroidSurfaceKHR);
 #endif /* VK_USE_PLATFORM_ANDROID_KHR */
 #ifdef VK_KHR_xlib_surface
 	VKEW_GET_FUNCTION(vkCreateXlibSurfaceKHR);
@@ -1417,7 +1441,7 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
 #else
 	Vulkan.ctx = LoadLibrary("vulkan-1.dll");
 #endif
-#elif defined(__ANDROID__)
+#elif defined(UNIX)
 	Vulkan.ctx = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
 #endif
 	if (!Vulkan.ctx) {
@@ -1498,10 +1522,10 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
 
 
 
-VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, 
+VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
 	uint32_t* selected_graphics_queue_family_index,
 	uint32_t* selected_present_queue_family_index,
-	uint32_t* selected_transfer_queue_family_index ) {
+	uint32_t* selected_transfer_queue_family_index) {
 	uint32_t extensions_count = 0;
 	vkGetPhysicalDeviceProperties(physical_device, &Vulkan.deviceProperties);
 	vkGetPhysicalDeviceFeatures(physical_device, &Vulkan.deviceFeatures);
@@ -1547,7 +1571,7 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
 	for (uint32_t i = 0; i < queue_families_count; ++i) {
 		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, Vulkan.presentationSurface, &queue_present_support[i]);
 	}
-    // Check for transfert only queue
+	// Check for transfert only queue
 	for (uint32_t i = 0; i < queue_families_count; ++i) {
 		if ((queue_family_properties[i].queueCount > 0) &&
 			(queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT) && !(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
@@ -1555,8 +1579,8 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
 		}
 	}
 
-	
-    // Check for graphics queue
+
+	// Check for graphics queue
 	for (uint32_t i = 0; i < queue_families_count; ++i) {
 		if ((queue_family_properties[i].queueCount > 0) &&
 			(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
@@ -1619,9 +1643,9 @@ VkResult vkewCreateDevice(void)
 	uint32_t selected_transfert_queue_family_index = UINT32_MAX;
 	for (uint32_t i = 0; i < num_devices; ++i) {
 		if (vkewCheckPhysicalDeviceProperties(physical_devices[i],
-                                              &selected_graphics_queue_family_index,
-                                              &selected_present_queue_family_index,
-                                              &selected_transfert_queue_family_index)) {
+			&selected_graphics_queue_family_index,
+			&selected_present_queue_family_index,
+			&selected_transfert_queue_family_index)) {
 			Vulkan.physicalDevice = physical_devices[i];
 		}
 	}
@@ -1657,12 +1681,12 @@ VkResult vkewCreateDevice(void)
 		&queue_priorities[0]                            // const float                 *pQueuePriorities
 	};
 	queue_create_infos[queueCreateInfoCount++] = qci0;
-    
-    if (selected_graphics_queue_family_index != selected_present_queue_family_index) {
+
+	if (selected_graphics_queue_family_index != selected_present_queue_family_index) {
 		queue_create_infos[queueCreateInfoCount++] = qci1;
 	}
     queue_create_infos[queueCreateInfoCount++] = qci2;
-	
+
 	int enabledExtensionCount = 0;
 	const char* ppEnabledExtensionNames[64] = { NULL };
 	VkPhysicalDeviceFeatures* pEnabledFeatures = NULL;
@@ -1716,12 +1740,12 @@ VkResult vkewCreateDevice(void)
 	Vulkan.graphicsQueueFamilyIndex = selected_graphics_queue_family_index;
 	Vulkan.presentQueueFamilyIndex = selected_present_queue_family_index;
 	Vulkan.transfertQueueFamilyIndex = selected_transfert_queue_family_index;
-    
+
 	Vulkan.queueNodeIndex = Vulkan.graphicsQueueFamilyIndex;
 	vkGetDeviceQueue(Vulkan.i.device, Vulkan.queueNodeIndex, 0, &Vulkan.queue);
-    
-    Vulkan.queueTransfertIndex = Vulkan.transfertQueueFamilyIndex;
-    vkGetDeviceQueue(Vulkan.i.device, Vulkan.queueTransfertIndex, 0, &Vulkan.transfertQueue);
+
+	Vulkan.queueTransfertIndex = Vulkan.transfertQueueFamilyIndex;
+	vkGetDeviceQueue(Vulkan.i.device, Vulkan.queueTransfertIndex, 0, &Vulkan.transfertQueue);
 
 	//vkewCreatePresentationSemaphore();
 	vkGetPhysicalDeviceProperties(Vulkan.physicalDevice, &Vulkan.deviceProperties);
@@ -1748,7 +1772,7 @@ VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platform
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	surfaceCreateInfo.window = platformWindow;                       // provided by the platform code
 	result = vkCreateAndroidSurfaceKHR(vkewGetInstance(), &surfaceCreateInfo, NULL, &Vulkan.presentationSurface);
-#else
+#elif defined (UNIX)
 	VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 	surfaceCreateInfo.connection = platformHandle;               // provided by the platform code
@@ -2150,5 +2174,5 @@ int vkewGetQueueNodeIndex(void)
 
 int vkewGetQueueTransfertIndex(void)
 {
-    return Vulkan.queueTransfertIndex;
+	return Vulkan.queueTransfertIndex;
 }
