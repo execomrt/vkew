@@ -1935,6 +1935,11 @@ VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_mod
 
 	return present_modes[0]; // We need something  ...
 }
+
+/// <summary>
+/// Release swap chain
+/// </summary>
+/// <param name=""></param>
 void vkewReleaseSwapChain(void)
 {
 	if (Vulkan.swapChainParams.Value!= VK_NULL_HANDLE)
@@ -1945,44 +1950,92 @@ void vkewReleaseSwapChain(void)
 }
 
 
+/// <summary>
+/// Get Swap Chain
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 VkSwapchainKHR vkewGetSwapChain(void)
 {
 	return Vulkan.swapChainParams.Value;
 }
+
+/// <summary>
+/// Get Swap chain extend 2D
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 VkExtent2D vkewGetSwapChainExtent2D(void)
 {
 	return Vulkan.swapChainParams.Extent;
 }
 
+/// <summary>
+/// Get swap chain count
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 int vkewGetSwapChainCount(void)
 {
 	return Vulkan.swapChainParams.ImagesCount;
 }
 
+/// <summary>
+/// Get Graphics Queue
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 VkQueue vkewGetGraphicsQueue(void)
 {
 	return Vulkan.queue;
 }
 
+/// <summary>
+/// Get Transfer Queue
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 VkQueue vkewGetTransferQueue(void)
 {
 	return Vulkan.transfertQueue;
 }
+
+/// <summary>
+/// Get Graphics Queue Family Index
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 
 uint32_t vkewGetGraphicsQueueFamilyIndex(void)
 {
 	return Vulkan.graphicsQueueFamilyIndex;
 }
 
+/// <summary>
+/// Get Transfert queue family index
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 uint32_t vkewGetTransfertQueueFamilyIndex(void)
 {
 	return Vulkan.transfertQueueFamilyIndex;
 }
 
+/// <summary>
+/// Get device
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 VkDevice vkewGetDevice(void)
 {
 	return Vulkan.i.device;
 }
+
+/// <summary>
+/// Create swap chain view
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 VkBool32 vkewCreateSwapChainImageViews(void) {
 	for (int i = 0; i < Vulkan.swapChainParams.ImagesCount; ++i) {
 		VkImageViewCreateInfo image_view_create_info = {
@@ -2187,35 +2240,63 @@ VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired
 	return VK_SUCCESS;
 }
 
+/// <summary>
+/// Get presentation surface
+/// </summary>
+/// <returns></returns>
 VkSurfaceKHR vkewGetPresentationSurface()
 {
 	return Vulkan.presentationSurface;
 }
+
+/// <summary>
+/// Get physical device
+/// </summary>
+/// <returns></returns>
 VkPhysicalDevice vkewGetPhysicalDevice()
 {
 	return Vulkan.physicalDevice;
 }
 
 
-VkImageView vkewGetSwapChainImageView(int i)
-{
-	return Vulkan.swapChainParams.Images[i].View;
-}
 
 
+/// <summary>
+/// Get Queue Node Index
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 int vkewGetQueueNodeIndex(void)
 {
 	return Vulkan.queueNodeIndex;
 }
 
-
+/// <summary>
+/// Get Transfert queue index
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 int vkewGetQueueTransfertIndex(void)
 {
 	return Vulkan.queueTransfertIndex;
 }
 
+/// <summary>
+/// Get swap chain imagfe
+/// </summary>
+/// <param name="i"></param>
+/// <returns></returns>
 VkImage vkewGetSwapChainImage(int i)
 {
 	return Vulkan.swapChainParams.Images[i].Value;
 }
 
+/// <summary>
+/// Get Swap Chain Image View 
+/// </summary>
+/// <param name="i"></param>
+/// <returns></returns>
+VkImageView vkewGetSwapChainImageView(int i)
+{
+	return Vulkan.swapChainParams.Images[i].View;
+}

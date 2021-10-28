@@ -285,7 +285,7 @@ extern "C" {
 #endif /* VK_USE_PLATFORM_XCB_KHR */	
 #ifdef VK_KHR_wayland_surface
 	extern PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR;
-	extern PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR kGetPhysicalDeviceWaylandPresentationSupportKHR;
+	extern PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR vkGetPhysicalDeviceWaylandPresentationSupportKHR;
 #endif /* VK_USE_PLATFORM_WAYLAND_KHR */
 #ifdef VK_KHR_mir_surface
 	extern PFN_vkCreateMirSurfaceKHR vkCreateMirSurfaceKHR;
