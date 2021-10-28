@@ -638,8 +638,8 @@ static int vkewInit_VK_EXT_full_screen_exclusive(VkInterface value)
 {
 	VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfacePresentModes2EXT);
 	VKEW_GET_FUNCTION(vkGetDeviceGroupSurfacePresentModes2EXT);
-	VKEW_GET_FUNCTION(vkAcquireFullScreenExclusiveModeEXT);
-	VKEW_GET_FUNCTION(vkReleaseFullScreenExclusiveModeEXT);
+	VKEW_GET_FUNCTION(vkAcquireFullScreenExclusiveModeEXT); // FIXME: Access violation executing location 0x0000000000000000.
+	VKEW_GET_FUNCTION(vkReleaseFullScreenExclusiveModeEXT); // FIXME: Access violation executing location 0x0000000000000000.
 	return vkGetPhysicalDeviceSurfacePresentModes2EXT != NULL;
 }
 #endif
@@ -1219,6 +1219,7 @@ static void InitExtensionsLayers(int enableValidation)
 	int platformSurfaceExtFound = 0;
 	uint32_t instance_extension_count = 0;
 	int surfaceExtFound = 0;
+	int fsExclusiveFound = 0;
 	int have_EXT_robustness2_features = 0;
 	VkResult err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, NULL);
 	if (instance_extension_count > 0) {
@@ -1240,6 +1241,12 @@ static void InitExtensionsLayers(int enableValidation)
 				platformSurfaceExtFound = 1;
 				AddExtensionLayer(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			}
+
+			if (!strcmp(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
+				fsExclusiveFound = 1;
+				AddExtensionLayer(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
+			}
+
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 			if (!strcmp(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
@@ -1703,6 +1710,10 @@ VkResult vkewCreateDevice(void)
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_ROBUSTNESS_2_EXTENSION_NAME;
 
 	}
+	if (VKEW_EXT_full_screen_exclusive)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME;
+	}
 
 
 	typedef struct VkPhysicalDeviceRobustness2FeaturesEXT {
@@ -1989,6 +2000,8 @@ VkBool32 vkewCreateSwapChainImageViews(void) {
 			1                                           // uint32_t                       layerCount
 			}
 		};
+
+
 		if (vkCreateImageView(Vulkan.i.device, &image_view_create_info, NULL, &Vulkan.swapChainParams.Images[i].View) != VK_SUCCESS) {
 			return VK_FALSE;
 		}
@@ -2085,6 +2098,16 @@ VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired
 		VK_TRUE,                                      // VkBool32                       clipped
 		old_swap_chain                                // VkSwapchainKHR                 oldSwapchain
 	};
+	// Enable transfer source on swap chain images if supported
+	if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+		swap_chain_create_info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	}
+
+	// Enable transfer destination on swap chain images if supported
+	if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+		swap_chain_create_info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	}
+
 	Vulkan.swapChainParams.Value = VK_NULL_HANDLE;
 #ifdef VK_EXT_full_screen_exclusive
 	if (full_screen_exclusive && VKEW_EXT_full_screen_exclusive)
@@ -2184,3 +2207,9 @@ int vkewGetQueueTransfertIndex(void)
 {
 	return Vulkan.queueTransfertIndex;
 }
+
+VkImage vkewGetSwapChainImage(int i)
+{
+	return Vulkan.swapChainParams.Images[i].Value;
+}
+
