@@ -61,7 +61,7 @@
 #define VK_USE_PLATFORM_XCB_KHR
 
 #endif
-#define l_strncat(dest, destsz, src) strncat(dest, src, destsz)
+#define l_strncat(dest, destsz, src) strncat(dest, src, destsz-1)
 #define l_snprintf snprintf
 #else
 #error "Unsupported platform"
@@ -322,6 +322,7 @@ struct vkewContext
 	VkSurfaceFormatKHR* surfaceFormats;
 #ifdef VK_EXT_full_screen_exclusive
 	VkSurfaceFullScreenExclusiveInfoEXT surfaceFullScreenExclusiveInfoEXT;
+	VkSurfaceCapabilities2KHR surfaceCapabilities2KHR;
 	VkSurfaceFullScreenExclusiveWin32InfoEXT surfaceFullScreenExclusiveWin32InfoEXT;
 #endif
 	VkSurfaceKHR presentationSurface;
@@ -827,7 +828,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 #ifdef VK_KHR_display_swapchain
 	vkewInit_VK_KHR_display_swapchain(value);
 #endif
-#ifdef VK_EXT_debug_report
+#ifdef VK_EXT_debug_report 
 	VKEW_EXT_debug_report = vkewInit_VK_EXT_debug_report(value);
 #endif
 #ifdef VK_EXT_debug_report
@@ -838,7 +839,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 #endif
 
 #ifdef VK_EXT_full_screen_exclusive
-	VKEW_EXT_full_screen_exclusive = 0; // Not ready for prime time. vkewInit_VK_EXT_full_screen_exclusive(value);
+	VKEW_EXT_full_screen_exclusive = vkewInit_VK_EXT_full_screen_exclusive(value);
 #endif
 
 
@@ -2088,29 +2089,36 @@ VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired
 #ifdef VK_EXT_full_screen_exclusive
 	if (full_screen_exclusive && VKEW_EXT_full_screen_exclusive)
 	{
-		/*
+		/* 
 		This extension allows applications to set the policy for swapchain creation and presentation mechanisms relating to full-screen access. Implementations may be able to acquire exclusive access to a particular display for an application window that covers the whole screen. This can increase performance on some systems by bypassing composition, however it can also result in disruptive or expensive transitions in the underlying windowing system when a change occurs.
 		Applications can choose between explicitly disallowing or allowing this behavior, letting the implementation decide, or managing this mode of operation directly using the new vkAcquireFullScreenExclusiveModeEXT and vkReleaseFullScreenExclusiveModeEXT commands.
 		*/
 		// https://gpuopen.com/using-amd-freesync-premium-pro-hdr-code-samples/
 		Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
-		Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow((HWND)platformWindow, MONITOR_DEFAULTTOPRIMARY);
 		Vulkan.surfaceFullScreenExclusiveInfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
+
+		Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow((HWND)platformWindow, MONITOR_DEFAULTTOPRIMARY);		
 		Vulkan.surfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT;
-		// [VkDeviceGroupSwapchainCreateInfoKHR, VkImageFormatListCreateInfo, VkSurfaceFullScreenExclusiveInfoEXT, VkSurfaceFullScreenExclusiveWin32InfoEXT, VkSwapchainCounterCreateInfoEXT, VkSwapchainDisplayNativeHdrCreateInfoAMD]
-		/*
-		Vulkan.physicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR; // unexpected
-		Vulkan.physicalDeviceSurfaceInfo2KHR.surface = Vulkan.presentationSurface;
-		Vulkan.physicalDeviceSurfaceInfo2KHR.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
-		*/
+
 		swap_chain_create_info.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
 		Vulkan.surfaceFullScreenExclusiveInfoEXT.pNext = &Vulkan.surfaceFullScreenExclusiveWin32InfoEXT;
+		Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.pNext = NULL;
+
+		Vulkan.surfaceCapabilities2KHR.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
+		Vulkan.surfaceCapabilities2KHR.pNext = NULL;
+
+		Vulkan.physicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2_KHR;
+		Vulkan.physicalDeviceSurfaceInfo2KHR.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
+		Vulkan.physicalDeviceSurfaceInfo2KHR.surface = Vulkan.presentationSurface;
+
+		Vulkan.supportsExclusiveFullscreen = vkGetPhysicalDeviceSurfaceCapabilities2KHR(Vulkan.physicalDevice, &Vulkan.physicalDeviceSurfaceInfo2KHR, &Vulkan.surfaceCapabilities2KHR) == VK_SUCCESS;
 	}
 	if (VK_CHECK(vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value)) != VK_SUCCESS) {
 		// Try without exclusive fullscreen.
 		Vulkan.supportsExclusiveFullscreen = 0;
 		swap_chain_create_info.pNext = NULL;
 	}
+	
 #endif
 	if (Vulkan.swapChainParams.Value == VK_NULL_HANDLE)
 		if (VK_CHECK(vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value)) != VK_SUCCESS) {
