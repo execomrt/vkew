@@ -1219,7 +1219,7 @@ static void InitExtensionsLayers(int enableValidation)
 	int platformSurfaceExtFound = 0;
 	uint32_t instance_extension_count = 0;
 	int surfaceExtFound = 0;
-	int fsExclusiveFound = 0;
+	int surfaceCaps2Ext;
 	int have_EXT_robustness2_features = 0;
 	VkResult err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, NULL);
 	if (instance_extension_count > 0) {
@@ -1227,6 +1227,12 @@ static void InitExtensionsLayers(int enableValidation)
 		err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, instance_extensions);
 		for (int32_t i = 0; i < (int32_t)instance_extension_count; i++) {
 
+
+			// ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME;
+			if (!strcmp(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, instance_extensions[i].extensionName)) {
+				surfaceCaps2Ext = 1;
+				AddExtensionLayer(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+			}
 
 			if (!strcmp(VK_KHR_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				surfaceExtFound = 1;
@@ -1242,11 +1248,7 @@ static void InitExtensionsLayers(int enableValidation)
 				AddExtensionLayer(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			}
 
-			if (!strcmp(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
-				fsExclusiveFound = 1;
-				AddExtensionLayer(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
-			}
-
+			
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 			if (!strcmp(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName)) {
 				platformSurfaceExtFound = 1;
@@ -1710,10 +1712,14 @@ VkResult vkewCreateDevice(void)
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_ROBUSTNESS_2_EXTENSION_NAME;
 
 	}
+#ifdef VK_EXT_full_screen_exclusive
 	if (VKEW_EXT_full_screen_exclusive)
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME;
-	}
+		// Loader_validate_device_extensions: Device extension VK_KHR_get_surface_capabilities2 not supported by selected physical device or enabled layers.
+		// ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME;
+	}	
+#endif
 
 
 	typedef struct VkPhysicalDeviceRobustness2FeaturesEXT {
