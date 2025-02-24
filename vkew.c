@@ -1,7 +1,8 @@
 /*
  ** The Vulkan Extension Wrangler Library
- ** Copyright (C) 2021 Stephane Denis
+ ** Copyright (C) 2021, 2025 Stephane Denis
  ** All rights reserved.
+ ** V 0.9.1
  **
  ** Redistribution and use in source and binary forms, with or without
  ** modification, are permitted provided that the following conditions are met:
@@ -25,7 +26,10 @@
  ** CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  ** ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  ** THE POSSIBILITY OF SUCH DAMAGE.
+ * 
   */
+
+
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
 #undef UNIX
 #define UNIX 1
@@ -78,9 +82,8 @@ static PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN;
 #endif
 #include "vkew.h"
 #define APP_SHORT_NAME "vkew"
-#define VENDOR_ID_AMD 0x1002
-#define VENDOR_ID_NV 0x10DE
-#define VENDOR_ID_INTEL 0x8086
+#include "vkewVendors.h"
+
 #define l_calloc(count, size) calloc(count, size)
 #define l_free(ptr) if (ptr) free(ptr)
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
@@ -589,8 +592,8 @@ PFN_vkGetPhysicalDeviceSurfaceFormats2KHR vkGetPhysicalDeviceSurfaceFormats2KHR;
 #endif
 static int vkewInit_VK_KHR_get_surface_capabilities2(VkInterface value)
 {
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfaceFormats2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceFormats2KHR);
 #if defined VK_NO_PROTOTYPES
     return vkGetPhysicalDeviceSurfaceFormats2KHR != NULL;
 #else
@@ -616,7 +619,7 @@ static int vkewInit_VK_KHR_push_descriptor(VkInterface value)
 }
 #endif
 #ifdef VK_KHR_synchronization2
-VkBool32 VKEW_VK_KHR_synchronization2;
+VkBool32 VKEW_KHR_synchronization2;
 #if defined VK_NO_PROTOTYPES
 PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
 PFN_vkCmdResetEvent2KHR vkCmdResetEvent2KHR;
@@ -794,6 +797,12 @@ VkBool32 VKEW_EXT_descriptor_indexing;
 VkBool32 VKEW_KHR_spirv_1_4;
 #endif
 
+VkBool32 VKEW_VERSION_1_1;
+VkBool32 VKEW_VERSION_1_2;
+VkBool32 VKEW_VERSION_1_3;
+VkBool32 VKEW_VERSION_1_4;
+
+
 #ifdef VK_KHR_shader_float_controls
 VkBool32 VKEW_KHR_shader_float_controls;
 #endif
@@ -859,7 +868,7 @@ PFN_vkReleaseFullScreenExclusiveModeEXT vkReleaseFullScreenExclusiveModeEXT;
 #endif
 static int vkewInit_VK_EXT_full_screen_exclusive(VkInterface value)
 {
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfacePresentModes2EXT);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfacePresentModes2EXT);
     VKEW_GET_FUNCTION(vkGetDeviceGroupSurfacePresentModes2EXT);
     VKEW_GET_FUNCTION(vkAcquireFullScreenExclusiveModeEXT);
     VKEW_GET_FUNCTION(vkReleaseFullScreenExclusiveModeEXT);
@@ -951,16 +960,17 @@ PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentM
 static int vkewInit_VK_KHR_surface(VkInterface value)
 {
 #if defined VK_NO_PROTOTYPES
-    VKEW_GET_FUNCTION(vkDestroySurfaceKHR);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfaceSupportKHR);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfaceFormatsKHR);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceSurfacePresentModesKHR);
+    VKEW_GET_PROC(vkDestroySurfaceKHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceSupportKHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceFormatsKHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSurfacePresentModesKHR);
 #endif
     return VK_TRUE;
 }
 #endif /* VK_KHR_surface */
 #ifdef VK_KHR_swapchain
+VkBool32 VKEW_KHR_swapchain;
 #if defined VK_NO_PROTOTYPES
 PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR;
 PFN_vkDestroySwapchainKHR vkDestroySwapchainKHR;
@@ -1000,8 +1010,8 @@ PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32Prese
 static int vkewInit_VK_KHR_win32_surface(VkInterface value)
 {
 #if defined VK_NO_PROTOTYPES
-    VKEW_GET_FUNCTION(vkCreateWin32SurfaceKHR);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceWin32PresentationSupportKHR);
+    VKEW_GET_PROC(vkCreateWin32SurfaceKHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceWin32PresentationSupportKHR);
 #endif
     return VK_TRUE;
 }
@@ -1137,8 +1147,7 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkCreateComputePipelines);
     VKEW_GET_FUNCTION(vkCreateDescriptorPool);
     VKEW_GET_FUNCTION(vkCreateDescriptorSetLayout);
-    VKEW_GET_FUNCTION(vkCreateDevice);
-    VKEW_GET_FUNCTION(vkCreateDevice);
+    VKEW_GET_PROC(vkCreateDevice);
     VKEW_GET_FUNCTION(vkCreateFence);
     VKEW_GET_FUNCTION(vkCreateFramebuffer);
     VKEW_GET_FUNCTION(vkCreateGraphicsPipelines);
@@ -1161,7 +1170,7 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkDestroyFramebuffer);
     VKEW_GET_FUNCTION(vkDestroyImage);
     VKEW_GET_FUNCTION(vkDestroyImageView);
-    VKEW_GET_FUNCTION(vkDestroyInstance);
+    VKEW_GET_PROC(vkDestroyInstance);
     VKEW_GET_FUNCTION(vkDestroyPipeline);
     VKEW_GET_FUNCTION(vkDestroyPipelineCache);
     VKEW_GET_FUNCTION(vkDestroyPipelineLayout);
@@ -1172,9 +1181,9 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkDestroyShaderModule);
     VKEW_GET_FUNCTION(vkDeviceWaitIdle);
     VKEW_GET_FUNCTION(vkEndCommandBuffer);
-    VKEW_GET_FUNCTION(vkEnumerateDeviceExtensionProperties);
-    VKEW_GET_FUNCTION(vkEnumerateDeviceLayerProperties);
-    VKEW_GET_FUNCTION(vkEnumeratePhysicalDevices);
+    VKEW_GET_PROC(vkEnumerateDeviceExtensionProperties);
+    VKEW_GET_PROC(vkEnumerateDeviceLayerProperties);
+    VKEW_GET_PROC(vkEnumeratePhysicalDevices);
     VKEW_GET_FUNCTION(vkFlushMappedMemoryRanges);
     VKEW_GET_FUNCTION(vkFreeCommandBuffers);
     VKEW_GET_FUNCTION(vkFreeDescriptorSets);
@@ -1186,18 +1195,16 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkGetDeviceQueue);
     VKEW_GET_FUNCTION(vkGetFenceStatus);
     VKEW_GET_FUNCTION(vkGetImageMemoryRequirements);
-    VKEW_GET_FUNCTION(vkGetImageMemoryRequirements);
     VKEW_GET_FUNCTION(vkGetImageMemoryRequirements2);
     VKEW_GET_FUNCTION(vkGetImageSubresourceLayout);
-    VKEW_GET_FUNCTION(vkGetImageSubresourceLayout);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceFeatures);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceFeatures2);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceFormatProperties);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceMemoryProperties);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceMemoryProperties2);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceProperties);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceProperties2);
-    VKEW_GET_FUNCTION(vkGetPhysicalDeviceQueueFamilyProperties);
+    VKEW_GET_PROC(vkGetPhysicalDeviceFeatures);
+    VKEW_GET_PROC(vkGetPhysicalDeviceFeatures2);
+    VKEW_GET_PROC(vkGetPhysicalDeviceFormatProperties);
+    VKEW_GET_PROC(vkGetPhysicalDeviceMemoryProperties);
+    VKEW_GET_PROC(vkGetPhysicalDeviceMemoryProperties2);
+    VKEW_GET_PROC(vkGetPhysicalDeviceProperties);
+    VKEW_GET_PROC(vkGetPhysicalDeviceProperties2);
+    VKEW_GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties);
     VKEW_GET_FUNCTION(vkGetQueryPoolResults);
     VKEW_GET_FUNCTION(vkInvalidateMappedMemoryRanges);
     VKEW_GET_FUNCTION(vkMapMemory);
@@ -1233,7 +1240,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_FUNCTION(vkGetPhysicalDeviceMirPresentationSupportKHR);
 #endif /* VK_USE_PLATFORM_MIR_KHR */
 #ifdef VK_KHR_synchronization2
-    VKEW_VK_KHR_synchronization2 = vkewInit_VK_KHR_synchronization2(value);
+    vkewInit_VK_KHR_synchronization2(value);
 #endif
 #endif
     return VK_FALSE;
@@ -1740,6 +1747,7 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
     Vulkan.validationLayerCount = 0;
     Vulkan.enabledExtensions = enabledExtensions;
     Vulkan.enabledExtensionCount = 0;
+
     VkApplicationInfo applicationInfo = {0};
     VkInstanceCreateInfo instanceCreateInfo = {0};
     Vulkan.enableValidation = enableValidation != 0;
@@ -1869,17 +1877,28 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
             return VK_FALSE;
         }
     }
-    VkBool32 errataExtRobutness2 = Vulkan.deviceProperties.vendorID == VENDOR_ID_NV;
+    VkBool32 errataExtRobutness2 = Vulkan.deviceProperties.vendorID == VENDOR_ID_NVIDIA;
+
+    VKEW_KHR_swapchain = checkExtensionAvailability(
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME, available_extensions, extensions_count);
+
     VKEW_EXT_robustness2 = errataExtRobutness2 ? VK_FALSE : checkExtensionAvailability(
         VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, available_extensions, extensions_count);
+
     VKEW_KHR_get_physical_device_properties2 = checkExtensionAvailability(
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, available_extensions, extensions_count);
+
 #ifdef VK_EXT_full_screen_exclusive
     VKEW_EXT_full_screen_exclusive = checkExtensionAvailability(
         VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME, available_extensions, extensions_count);
 #endif
+
     VKEW_KHR_image_format_list = checkExtensionAvailability(
         VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME, available_extensions, extensions_count);
+
+	VKEW_KHR_synchronization2 = checkExtensionAvailability(
+		VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, available_extensions, extensions_count);
+
     VKEW_KHR_push_descriptor = checkExtensionAvailability(
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance1 = checkExtensionAvailability(
@@ -1891,7 +1910,6 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
     VKEW_KHR_maintenance4 = checkExtensionAvailability(
         VK_KHR_MAINTENANCE_4_EXTENSION_NAME, available_extensions, extensions_count);
     //VKEW_KHR_maintenance5 = checkExtensionAvailability( VK_KHR_MAINTENANCE_5_EXTENSION_NAME, available_extensions, extensions_count);
-
 
 
     if (VKEW_KHR_acceleration_structure)
@@ -2098,7 +2116,10 @@ VkResult vkewCreateDevice(void)
     const char* ppEnabledExtensionNames[64] = {NULL};
     VkPhysicalDeviceFeatures* pEnabledFeatures = NULL;
 
-    ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+	if (VKEW_KHR_swapchain)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+	}
     
     if (VKEW_KHR_image_format_list)
     {
@@ -2186,21 +2207,33 @@ VkResult vkewCreateDevice(void)
     {
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DEBUG_MARKER_EXTENSION_NAME;
     }
+    if (VKEW_KHR_synchronization2)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME;
+        
+    }
+
+
     for (;;)
     {
+        // Initialize device creation info
         VkDeviceCreateInfo device_create_info = {
-            VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, // VkStructureType                    sType
-            NULL, // const void                        *pNext
-            0, // VkDeviceCreateFlags                flags
-            queueCreateInfoCount, // uint32_t                           queueCreateInfoCount
-            &queue_create_infos[0], // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
-            0, // uint32_t                           enabledLayerCount
-            NULL, // const char * const                *ppEnabledLayerNames
-            enabledExtensionCount, // uint32_t                           enabledExtensionCount
-            ppEnabledExtensionNames, // const char * const                *ppEnabledExtensionNames
-            pEnabledFeatures // const VkPhysicalDeviceFeatures    *pEnabledFeatures
+            VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, // sType
+            NULL, // pNext (will be set later)
+            0, // flags
+            queueCreateInfoCount, // queueCreateInfoCount
+            &queue_create_infos[0], // pQueueCreateInfos
+            0, // enabledLayerCount
+            NULL, // ppEnabledLayerNames
+            enabledExtensionCount, // enabledExtensionCount
+            ppEnabledExtensionNames, // ppEnabledExtensionNames
+            pEnabledFeatures // pEnabledFeatures
         };
-        VkBaseInStructure* lpExtensions = (VkBaseInStructure*)&device_create_info;
+
+        // Base pointer for chaining extensions via pNext
+        VkBaseInStructure* lastPNext = NULL;
+
+        // Define extension structures
         VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
             NULL,
@@ -2208,17 +2241,37 @@ VkResult vkewCreateDevice(void)
             VK_FALSE, // robustImageAccess2
             VK_TRUE // nullDescriptor        
         };
+
+        VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
+            NULL,
+            VK_TRUE // Enable synchronization2 features
+        };
+
         VkPhysicalDeviceFeatures2 features2 = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
             NULL
         };
         features2.features.samplerAnisotropy = VK_TRUE;
- 
+
+        // Chain pNext properly
         if (VKEW_EXT_robustness2)
         {
-            lpExtensions->pNext = (const struct VkBaseInStructure*)&robustness2;
-            lpExtensions = (VkBaseInStructure*)&robustness2;
+            lastPNext = (VkBaseInStructure*)&robustness2;
+            device_create_info.pNext = (VkBaseInStructure*)&robustness2;
         }
+
+        if (VKEW_KHR_synchronization2)
+        {
+            if (lastPNext)
+                lastPNext->pNext = (VkBaseInStructure*)&sync2Features;
+            else
+                device_create_info.pNext = (VkBaseInStructure*)&sync2Features;
+
+            lastPNext = (VkBaseInStructure*)&sync2Features;
+        }
+
+        // Create the Vulkan logical device
         VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, NULL, &Vulkan.i.device));
         if (ret == VK_SUCCESS)
         {
@@ -2233,6 +2286,7 @@ VkResult vkewCreateDevice(void)
             return VK_ERROR_INITIALIZATION_FAILED;
         }
     }
+
     vkewInterfaceLevelInit(Vulkan.i);
     Vulkan.graphicsQueueFamilyIndex = selected_graphics_queue_family_index;
     Vulkan.presentQueueFamilyIndex = selected_present_queue_family_index;
@@ -2249,6 +2303,15 @@ VkResult vkewCreateDevice(void)
         Vulkan.computeQueue = Vulkan.renderQueue;
     vkGetPhysicalDeviceProperties(Vulkan.physicalDevice, &Vulkan.deviceProperties);
     vkGetPhysicalDeviceFeatures(Vulkan.physicalDevice, &Vulkan.deviceFeatures);
+
+    uint32_t apiVersion = Vulkan.deviceProperties.apiVersion;    
+    uint32_t major = VK_VERSION_MAJOR(apiVersion);
+    uint32_t minor = VK_VERSION_MINOR(apiVersion);
+    
+    VKEW_VERSION_1_1 = (major >= 1 && minor >= 1) || major > 1;
+    VKEW_VERSION_1_2 = (major >= 1 && minor >= 2) || major > 1;
+    VKEW_VERSION_1_3 = (major >= 1 && minor >= 3) || major > 1;
+    VKEW_VERSION_1_4 = (major >= 1 && minor >= 4) || major > 1;
    
     return VK_SUCCESS;
 }
@@ -2301,6 +2364,7 @@ VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platform
     {
         return result;
     }
+
     vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &Vulkan.formatCount, NULL);
     Vulkan.surfaceFormats = (VkSurfaceFormatKHR*)l_calloc(Vulkan.formatCount, sizeof(VkSurfaceFormatKHR));
     vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &Vulkan.formatCount,
@@ -2563,6 +2627,10 @@ VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired
                              VkFormat colorFormat, VkColorSpaceKHR colorSpace)
 {
     VkSurfaceCapabilitiesKHR surface_capabilities;
+	if (VKEW_KHR_swapchain == 0)
+	{
+		return VK_ERROR_INITIALIZATION_FAILED;
+	}
     if (VK_CHECK(
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &
             surface_capabilities)) != VK_SUCCESS)
