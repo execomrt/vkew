@@ -54,11 +54,9 @@ extern VkImage vkewGetSwapChainImage(int i);
 extern VkInstance vkewGetInstance(void);
 extern VkPhysicalDevice vkewGetPhysicalDevice(void);
 extern VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync);
-extern VkQueue vkewGetGraphicsQueue(void);
-extern VkQueue vkewGetTransferQueue(void);
-extern VkQueue vkewGetComputeQueue(void);
 extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
 
+extern VkResult vkewDestroySurface(void);
 extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat,
                                   VkColorSpaceKHR colorSpace);
 extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent,
@@ -80,7 +78,9 @@ extern uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surfac
 extern void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f);
 extern void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePropertiesKHR* p, VkPhysicalDeviceAccelerationStructureFeaturesKHR* f);
 extern void vkewReleaseSwapChain(void);
-
+extern VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device);
+extern VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, uint32_t* selected_graphics_queue_family_index, uint32_t* selected_present_queue_family_index, uint32_t* selected_transfer_queue_family_index, uint32_t* selected_compute_queue_family_index);
+extern VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index, uint32_t selected_present_queue_family_index, uint32_t selected_transfert_queue_family_index, uint32_t selected_compute_queue_family_index);
 #if defined VK_NO_PROTOTYPES
 
 extern PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
@@ -279,6 +279,15 @@ extern VkBool32 VKEW_EXT_robustness2;
 
 #ifdef VK_KHR_get_physical_device_properties2 
 extern VkBool32 VKEW_KHR_get_physical_device_properties2;
+#if defined VK_NO_PROTOTYPES
+extern PFN_vkGetPhysicalDeviceFeatures2KHR                    vkGetPhysicalDeviceFeatures2KHR;
+extern PFN_vkGetPhysicalDeviceProperties2KHR                  vkGetPhysicalDeviceProperties2KHR;
+extern PFN_vkGetPhysicalDeviceFormatProperties2KHR            vkGetPhysicalDeviceFormatProperties2KHR;
+extern PFN_vkGetPhysicalDeviceImageFormatProperties2KHR       vkGetPhysicalDeviceImageFormatProperties2KHR;
+extern PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR       vkGetPhysicalDeviceQueueFamilyProperties2KHR;
+extern PFN_vkGetPhysicalDeviceMemoryProperties2KHR            vkGetPhysicalDeviceMemoryProperties2KHR;
+extern PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
+#endif
 #endif
 
 #ifdef VK_EXT_full_screen_exclusive
@@ -438,12 +447,39 @@ extern VkBool32 VKEW_KHR_shader_float_controls;
 extern VkBool32 VKEW_KHR_pipeline_library;
 #endif
 
+#ifdef VK_KHR_timeline_semaphore 
+extern VkBool32 VKEW_KHR_timeline_semaphore;
+#endif
+
+#ifdef VK_KHR_shader_clock 
+extern VkBool32 VKEW_KHR_shader_clock;
+#endif
+
+#ifdef VK_KHR_shader_float16_int8 
+extern VkBool32 VKEW_KHR_shader_float16_int8;
+#endif
+
+#ifdef VK_KHR_driver_properties 
+extern VkBool32 VKEW_KHR_driver_properties;
+#endif
+
+#ifdef VK_EXT_memory_priority 
+extern VkBool32 VKEW_EXT_memory_priority;
+#endif
+
+#ifdef VK_EXT_pipeline_creation_cache_control 
+extern VkBool32 VKEW_EXT_pipeline_creation_cache_control;
+#endif
+
+#ifdef VK_EXT_subgroup_size_control 
+extern VkBool32 VKEW_EXT_subgroup_size_control;
+#endif
+
+
 extern VkBool32 VKEW_VERSION_1_1;
 extern VkBool32 VKEW_VERSION_1_2;
 extern VkBool32 VKEW_VERSION_1_3;
 extern VkBool32 VKEW_VERSION_1_4;
-
-
 
 #ifdef __cplusplus
 }

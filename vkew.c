@@ -28,8 +28,6 @@
  ** THE POSSIBILITY OF SUCH DAMAGE.
  * 
   */
-
-
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
 #undef UNIX
 #define UNIX 1
@@ -83,7 +81,6 @@ static PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN;
 #include "vkew.h"
 #define APP_SHORT_NAME "vkew"
 #include "vkewVendors.h"
-
 #define l_calloc(count, size) calloc(count, size)
 #define l_free(ptr) if (ptr) free(ptr)
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
@@ -307,6 +304,8 @@ struct vkewContext
     VkDebugReportCallbackEXT messageCallback;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkExtensionProperties* availableExtensions;
+
+
     VkFormat colorFormat;
     VkInstanceCreateInfo instanceCreateInfo;
     VkInterface i;
@@ -318,9 +317,6 @@ struct vkewContext
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
     VkPresentModeKHR* presentationModes;
-    VkQueue renderQueue;
-    VkQueue transfertQueue;
-    VkQueue computeQueue;
     VkSurfaceFormatKHR* surfaceFormats;
 #ifdef VK_EXT_full_screen_exclusive
     VkSurfaceFullScreenExclusiveInfoEXT surfaceFullScreenExclusiveInfoEXT;
@@ -660,7 +656,6 @@ VkBool32 VKEW_KHR_maintenance3;
 PFN_vkGetDescriptorSetLayoutSupportKHR vkGetDescriptorSetLayoutSupportKHR;
 #endif
 #ifdef VK_KHR_maintenance4
-
 VkBool32 VKEW_KHR_maintenance4;
 PFN_vkGetDeviceBufferMemoryRequirementsKHR vkGetDeviceBufferMemoryRequirementsKHR;
 PFN_vkGetDeviceImageMemoryRequirementsKHR vkGetDeviceImageMemoryRequirementsKHR;
@@ -675,7 +670,6 @@ static int vkewInit_VK_KHR_maintenance4(VkInterface value)
         vkGetDeviceImageSparseMemoryRequirementsKHR != NULL;
 }
 #endif
-
 #ifdef VK_KHR_maintenance5
 VkBool32 VKEW_KHR_maintenance5;
 PFN_vkCmdBindIndexBuffer2KHR             vkCmdBindIndexBuffer2KHR;
@@ -694,7 +688,6 @@ static int vkewInit_VK_KHR_maintenance5(VkInterface value)
         vkGetImageSubresourceLayout2KHR != NULL;
 }
 #endif
-
 #ifdef VK_KHR_acceleration_structure
 VkBool32 VKEW_KHR_acceleration_structure;
 PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
@@ -765,7 +758,6 @@ static int vkewInit_VK_KHR_buffer_device_address(VkInterface value)
 		vkGetDeviceMemoryOpaqueCaptureAddressKHR != NULL;
 }
 #endif
-
 #ifdef VK_KHR_deferred_host_operations
 VkBool32 VKEW_KHR_deferred_host_operations;
 PFN_vkCreateDeferredOperationKHR vkCreateDeferredOperationKHR;
@@ -785,32 +777,24 @@ static int vkewInit_VK_KHR_deferred_host_operations(VkInterface value)
 		vkGetDeferredOperationMaxConcurrencyKHR != NULL &&
 		vkGetDeferredOperationResultKHR != NULL &&
 		vkDeferredOperationJoinKHR != NULL;
-
 }
 #endif
-
 #ifdef VK_EXT_descriptor_indexing
 VkBool32 VKEW_EXT_descriptor_indexing;
 #endif
-
 #ifdef VK_KHR_spirv_1_4
 VkBool32 VKEW_KHR_spirv_1_4;
 #endif
-
 VkBool32 VKEW_VERSION_1_1;
 VkBool32 VKEW_VERSION_1_2;
 VkBool32 VKEW_VERSION_1_3;
 VkBool32 VKEW_VERSION_1_4;
-
-
 #ifdef VK_KHR_shader_float_controls
 VkBool32 VKEW_KHR_shader_float_controls;
 #endif
-
 #ifdef VK_KHR_pipeline_library 
 VkBool32 VKEW_KHR_pipeline_library;
 #endif
-
 #ifdef VK_KHR_ray_query
 VkBool32 VKEW_KHR_ray_query;
 PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
@@ -824,10 +808,8 @@ static int vkewInit_VK_KHR_ray_query(VkInterface value)
 	return vkCmdDrawMeshTasksEXT != NULL &&
 		vkCmdDrawMeshTasksIndirectEXT != NULL &&
 		vkCmdDrawMeshTasksIndirectCountEXT != NULL;
-
 }
 #endif
-
 #ifdef VK_KHR_ray_tracing_pipeline
 VkBool32 VKEW_KHR_ray_tracing_pipeline;
 PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRaysKHR = 0;
@@ -1016,6 +998,31 @@ static int vkewInit_VK_KHR_win32_surface(VkInterface value)
     return VK_TRUE;
 }
 #endif
+#ifdef VK_KHR_driver_properties
+VkBool32 VKEW_KHR_driver_properties;
+    #if defined VK_NO_PROTOTYPES
+    PFN_vkGetPhysicalDeviceFeatures2KHR                    vkGetPhysicalDeviceFeatures2KHR;
+    PFN_vkGetPhysicalDeviceProperties2KHR                  vkGetPhysicalDeviceProperties2KHR;
+    PFN_vkGetPhysicalDeviceFormatProperties2KHR            vkGetPhysicalDeviceFormatProperties2KHR;
+    PFN_vkGetPhysicalDeviceImageFormatProperties2KHR       vkGetPhysicalDeviceImageFormatProperties2KHR;
+    PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR       vkGetPhysicalDeviceQueueFamilyProperties2KHR;
+    PFN_vkGetPhysicalDeviceMemoryProperties2KHR            vkGetPhysicalDeviceMemoryProperties2KHR;
+    PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
+    #endif
+static int vkewInit_VK_KHR_driver_properties(VkInterface value)
+{
+#if defined VK_NO_PROTOTYPES
+    VKEW_GET_PROC(vkGetPhysicalDeviceFeatures2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceProperties2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceFormatProperties2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceImageFormatProperties2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceMemoryProperties2KHR);
+    VKEW_GET_PROC(vkGetPhysicalDeviceSparseImageFormatProperties2KHR);
+#endif
+    return VK_TRUE;
+}
+#endif
 #ifdef VK_KHR_android_surface
 PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 #endif
@@ -1041,8 +1048,6 @@ PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 // Load instance based Vulkan function pointers
 int vkewInterfaceLevelInit(VkInterface value)
 {
-#if defined VK_NO_PROTOTYPES
-   
 #ifdef VK_KHR_win32_surface
     vkewInit_VK_KHR_win32_surface(value);
 #endif /* VK_USE_PLATFORM_WIN32_KHR */
@@ -1082,27 +1087,24 @@ int vkewInterfaceLevelInit(VkInterface value)
 #ifdef VK_EXT_debug_marker
     VKEW_EXT_debug_marker = vkewInit_VK_EXT_debug_marker(value);
 #endif
-
 #ifdef VK_KHR_buffer_device_address
     vkewInit_VK_KHR_buffer_device_address(value);
 #endif
-
 #ifdef VK_KHR_deferred_host_operations
     vkewInit_VK_KHR_deferred_host_operations(value);
 #endif
-
 #ifdef VK_KHR_acceleration_structure
 	 vkewInit_VK_KHR_acceleration_structure(value);
 #endif
-
 #ifdef VK_KHR_ray_tracing_pipeline
 	 vkewInit_VK_KHR_ray_tracing_pipeline(value);
 #endif
-
 #ifdef VK_KHR_ray_query
 	 vkewInit_VK_KHR_ray_query(value);
 #endif
-
+#ifdef VK_KHR_get_physical_device_properties2
+	 vkewInit_VK_KHR_driver_properties(value);
+#endif
     VKEW_GET_FUNCTION(vkAllocateCommandBuffers);
     VKEW_GET_FUNCTION(vkAllocateDescriptorSets);
     VKEW_GET_FUNCTION(vkAllocateMemory);
@@ -1217,7 +1219,6 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkUpdateDescriptorSets);
     VKEW_GET_FUNCTION(vkWaitForFences);
     VKEW_GET_FUNCTION(vkWaitSemaphores);
-
 #ifdef VK_EXT_full_screen_exclusive
 #endif
 #ifdef VK_KHR_android_surface
@@ -1242,9 +1243,17 @@ int vkewInterfaceLevelInit(VkInterface value)
 #ifdef VK_KHR_synchronization2
     vkewInit_VK_KHR_synchronization2(value);
 #endif
+#ifdef VK_KHR_get_physical_device_properties2
+	vkewInit_VK_KHR_driver_properties(value);
 #endif
     return VK_FALSE;
 }
+VkBool32 VKEW_KHR_timeline_semaphore;
+VkBool32 VKEW_KHR_shader_clock;
+VkBool32 VKEW_KHR_shader_float16_int8;
+VkBool32 VKEW_EXT_memory_priority;
+VkBool32 VKEW_EXT_pipeline_creation_cache_control;
+VkBool32 VKEW_EXT_subgroup_size_control;
 int vkewSupportsFullscreenExclusive(void)
 {
 #ifdef VK_EXT_full_screen_exclusive
@@ -1530,13 +1539,25 @@ static void InitExtensionsLayers(int enableValidation)
     {
         VkExtensionProperties* instance_extensions = malloc(sizeof(VkExtensionProperties) * instance_extension_count);
         err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, instance_extensions);
+
+        
+
         for (int32_t i = 0; i < (int32_t)instance_extension_count; i++)
-        {
-            // ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME;
+        {            
+
+            if (!strcmp(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, instance_extensions[i].extensionName))
+            {
+                AddExtensionLayer(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            }
+
             if (!strcmp(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, instance_extensions[i].extensionName))
             {
                 surfaceCaps2Ext = 1;
                 AddExtensionLayer(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+            }
+            if (!strcmp(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, instance_extensions[i].extensionName))
+            {
+                AddExtensionLayer(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
             }
             if (!strcmp(VK_KHR_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName))
             {
@@ -1747,7 +1768,6 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
     Vulkan.validationLayerCount = 0;
     Vulkan.enabledExtensions = enabledExtensions;
     Vulkan.enabledExtensionCount = 0;
-
     VkApplicationInfo applicationInfo = {0};
     VkInstanceCreateInfo instanceCreateInfo = {0};
     Vulkan.enableValidation = enableValidation != 0;
@@ -1835,22 +1855,7 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
     }
     return err;
 }
-/**
-* Acquires the next image in the swap chain
-*
-* @param presentCompleteSemaphore (Optional) Semaphore that is signaled when the image is ready for use
-* @param imageIndex Pointer to the image index that will be increased if the next image could be acquired
-*
-* @note The function will always wait until the next image has been acquired by setting timeout to UINT64_MAX
-*
-* @return VkResult of the image acquisition
-*/
-VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
-                                           uint32_t* selected_graphics_queue_family_index,
-                                           uint32_t* selected_present_queue_family_index,
-                                           uint32_t* selected_transfer_queue_family_index,
-                                           uint32_t* selected_compute_queue_family_index
-                                            )
+VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device)
 {
     uint32_t extensions_count = 0;
     vkGetPhysicalDeviceProperties(physical_device, &Vulkan.deviceProperties);
@@ -1878,25 +1883,20 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
         }
     }
     VkBool32 errataExtRobutness2 = Vulkan.deviceProperties.vendorID == VENDOR_ID_NVIDIA;
-
     VKEW_KHR_swapchain = checkExtensionAvailability(
         VK_KHR_SWAPCHAIN_EXTENSION_NAME, available_extensions, extensions_count);
-
     VKEW_EXT_robustness2 = errataExtRobutness2 ? VK_FALSE : checkExtensionAvailability(
         VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, available_extensions, extensions_count);
-
     VKEW_KHR_get_physical_device_properties2 = checkExtensionAvailability(
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, available_extensions, extensions_count);
-
 #ifdef VK_EXT_full_screen_exclusive
     VKEW_EXT_full_screen_exclusive = checkExtensionAvailability(
         VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME, available_extensions, extensions_count);
 #endif
-
     VKEW_KHR_image_format_list = checkExtensionAvailability(
         VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME, available_extensions, extensions_count);
-	VKEW_KHR_synchronization2 = checkExtensionAvailability(
-		VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_synchronization2 = checkExtensionAvailability(
+        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_push_descriptor = checkExtensionAvailability(
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance1 = checkExtensionAvailability(
@@ -1907,12 +1907,34 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
         VK_KHR_MAINTENANCE3_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance4 = checkExtensionAvailability(
         VK_KHR_MAINTENANCE_4_EXTENSION_NAME, available_extensions, extensions_count);
-    //VKEW_KHR_maintenance5 = checkExtensionAvailability( VK_KHR_MAINTENANCE_5_EXTENSION_NAME, available_extensions, extensions_count);
-
-
+    VKEW_KHR_buffer_device_address = checkExtensionAvailability(
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_EXT_descriptor_indexing = checkExtensionAvailability(
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_deferred_host_operations = checkExtensionAvailability(
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_acceleration_structure = checkExtensionAvailability(
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_ray_tracing_pipeline = checkExtensionAvailability(
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_ray_query = checkExtensionAvailability(
+        VK_KHR_RAY_QUERY_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_timeline_semaphore = checkExtensionAvailability(
+        VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_shader_clock = checkExtensionAvailability(
+        VK_KHR_SHADER_CLOCK_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_shader_float16_int8 = checkExtensionAvailability(
+        VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_driver_properties = checkExtensionAvailability(
+        VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_EXT_memory_priority = checkExtensionAvailability(
+        VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_EXT_pipeline_creation_cache_control = checkExtensionAvailability(
+        VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_EXT_subgroup_size_control = checkExtensionAvailability(
+        VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME, available_extensions, extensions_count);
     if (VKEW_KHR_acceleration_structure)
     {
-        // Get acceleration structure properties, which will be used later on in the sample
         Vulkan.accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
         VkPhysicalDeviceFeatures2 deviceFeatures2;
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -1921,45 +1943,29 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
     }
     if (VKEW_KHR_ray_tracing_pipeline)
     {
-        // Get ray tracing pipeline properties, which will be used later on in the sample
         Vulkan.rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
         VkPhysicalDeviceProperties2 deviceProperties2;
         deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         deviceProperties2.pNext = &Vulkan.rayTracingPipelineProperties;
         vkGetPhysicalDeviceProperties2(physical_device, &deviceProperties2);
     }
-
-    VKEW_KHR_buffer_device_address = checkExtensionAvailability(
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, available_extensions, extensions_count);
-
-    VKEW_EXT_descriptor_indexing = checkExtensionAvailability(
-        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, available_extensions, extensions_count);
-
-    VKEW_KHR_deferred_host_operations = checkExtensionAvailability(
-        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, available_extensions, extensions_count);
-
-    VKEW_KHR_acceleration_structure = checkExtensionAvailability(
-        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, available_extensions, extensions_count);
-
-	VKEW_KHR_ray_tracing_pipeline = checkExtensionAvailability(
-		VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, available_extensions, extensions_count);
-
-	VKEW_KHR_ray_query = checkExtensionAvailability(
-		VK_KHR_RAY_QUERY_EXTENSION_NAME, available_extensions, extensions_count);
- 
-    uint32_t major_version = VK_VERSION_MAJOR(Vulkan.deviceProperties.apiVersion);
-    if ((major_version < 1) ||
-        (Vulkan.deviceProperties.limits.maxImageDimension2D < 4096))
-    {
-        return VK_FALSE;
-    }
+    l_free(available_extensions);
+    return VK_TRUE;
+}
+VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
+                                           uint32_t* selected_graphics_queue_family_index,
+                                           uint32_t* selected_present_queue_family_index,
+                                           uint32_t* selected_transfer_queue_family_index,
+                                           uint32_t* selected_compute_queue_family_index
+                                            )
+{
+	vkewEnumerateDeviceExtensionProperties(physical_device);
     uint32_t queue_families_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, NULL);
     if (queue_families_count == 0)
     {
         return VK_FALSE;
     }
-    l_free(available_extensions);
     VkQueueFamilyProperties* queue_family_properties = l_calloc(queue_families_count, sizeof(VkQueueFamilyProperties));
     VkBool32* queue_present_support = l_calloc(queue_families_count, sizeof(VkBool32));
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, &queue_family_properties[0]);
@@ -2027,12 +2033,12 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
     }
     *selected_graphics_queue_family_index = graphics_queue_family_index;
     *selected_present_queue_family_index = present_queue_family_index;
-
-
-
     return VK_TRUE;
 }
-VkResult vkewCreateDevice(void)
+/// @brief 
+/// @param  
+/// @return 
+VkResult vkewCreateDevice(int aDeviceIndex)
 {
     VkInstance vkInstance = vkewGetInstance();
     uint32_t num_devices;
@@ -2053,30 +2059,153 @@ VkResult vkewCreateDevice(void)
     for (uint32_t i = 0; i < num_devices; ++i)
     {
         if (vkewCheckPhysicalDeviceProperties(physical_devices[i],
-                                              &selected_graphics_queue_family_index,
-                                              &selected_present_queue_family_index,
-                                              &selected_transfert_queue_family_index,
-                                              &selected_compute_queue_family_index))
+            &selected_graphics_queue_family_index,
+            &selected_present_queue_family_index,
+            &selected_transfert_queue_family_index,
+            &selected_compute_queue_family_index))
         {
-            Vulkan.physicalDevice = physical_devices[i];
+            if (aDeviceIndex == -1 || aDeviceIndex == i)
+            {
+                Vulkan.physicalDevice = physical_devices[i];
+                Vulkan.graphicsQueueFamilyIndex = selected_graphics_queue_family_index;
+                Vulkan.presentQueueFamilyIndex = selected_present_queue_family_index;
+                Vulkan.computeQueueFamilyIndex = selected_compute_queue_family_index;
+                Vulkan.transfertQueueFamilyIndex = selected_transfert_queue_family_index;
+            }
         }
     }
     if (Vulkan.physicalDevice == VK_NULL_HANDLE)
     {
         return VK_ERROR_INITIALIZATION_FAILED;
     }
+    return vkewCreateDeviceAt(Vulkan.physicalDevice, selected_graphics_queue_family_index, selected_present_queue_family_index, selected_transfert_queue_family_index, selected_compute_queue_family_index);
+}
+ /// @brief 
+ /// @param aDevice 
+ /// @param selected_graphics_queue_family_index 
+ /// @param selected_present_queue_family_index 
+ /// @param selected_transfert_queue_family_index 
+ /// @return 
+ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index, uint32_t selected_present_queue_family_index, uint32_t selected_transfert_queue_family_index, uint32_t selected_compute_queue_family_index)
+ {
     VkResult err = vkEnumerateDeviceExtensionProperties(Vulkan.physicalDevice, NULL, &Vulkan.availableExtensionCount,
-                                                        NULL);
+        NULL);
     if (Vulkan.availableExtensionCount > 0)
     {
         if (Vulkan.availableExtensions != NULL)
+        {
             l_free(Vulkan.availableExtensions);
+        }
         Vulkan.availableExtensions = malloc(sizeof(VkExtensionProperties) * Vulkan.availableExtensionCount);
         err = vkEnumerateDeviceExtensionProperties(Vulkan.physicalDevice, NULL, &Vulkan.availableExtensionCount,
-                                                   Vulkan.availableExtensions);
+            Vulkan.availableExtensions);
+    }
+    // All the extensions
+    int enabledExtensionCount = 0;
+    const char* ppEnabledExtensionNames[128] = { NULL };
+    VkPhysicalDeviceFeatures* pEnabledFeatures = NULL;
+    if (VKEW_KHR_swapchain)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_image_format_list)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_get_physical_device_properties2)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+    }
+    if (VKEW_EXT_robustness2)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_ROBUSTNESS_2_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_buffer_device_address)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME;
+    }
+    if (VKEW_EXT_descriptor_indexing)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_deferred_host_operations)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
+    }
+    if (Vulkan.enableRaytracing)
+    {
+        if (VKEW_KHR_ray_tracing_pipeline)
+        {
+            ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
+        }
+        if (VKEW_KHR_ray_query)
+        {
+            ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_RAY_QUERY_EXTENSION_NAME;
+        }
+        if (VKEW_KHR_acceleration_structure)
+        {
+            ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
+        }
+    }
+    if (VKEW_KHR_maintenance5)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME;
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME;
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_5_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_maintenance4)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_4_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_maintenance3)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_3_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_maintenance2)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_2_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_maintenance1)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_1_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_push_descriptor)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME;
+    }
+#ifdef VK_EXT_full_screen_exclusive
+    if (VKEW_EXT_full_screen_exclusive)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME;
+    }
+#endif
+    if (VKEW_EXT_debug_marker && Vulkan.enableValidation)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DEBUG_MARKER_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_synchronization2)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_timeline_semaphore)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_shader_clock)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SHADER_CLOCK_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_shader_float16_int8)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_driver_properties)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME;
     }
     VkDeviceQueueCreateInfo queue_create_infos[3];
-    float queue_priorities[] = {1.0f};
+    float queue_priorities[] = { 1.0f };
     int queueCount = 1;
     VkDeviceQueueCreateInfo qci0 = {
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, // VkStructureType              sType
@@ -2109,109 +2238,6 @@ VkResult vkewCreateDevice(void)
         queue_create_infos[queueCreateInfoCount++] = qci1;
     }
     queue_create_infos[queueCreateInfoCount++] = qci2;
-    // All the extensions
-    int enabledExtensionCount = 0;
-    const char* ppEnabledExtensionNames[64] = {NULL};
-    VkPhysicalDeviceFeatures* pEnabledFeatures = NULL;
-
-	if (VKEW_KHR_swapchain)
-	{
-		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-	}
-    
-    if (VKEW_KHR_image_format_list)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME;
-    }
-    
-    if (VKEW_KHR_get_physical_device_properties2)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
-    }
-    
-    if (VKEW_EXT_robustness2)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_ROBUSTNESS_2_EXTENSION_NAME;
-    }
-
-    if (VKEW_KHR_buffer_device_address)
-    {
-		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME;
-    }
-
-    if (VKEW_EXT_descriptor_indexing)
-    {
-		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
-    }
-
-    if (VKEW_KHR_deferred_host_operations)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
-    }
-
-    if (Vulkan.enableRaytracing)
-    {
-        if (VKEW_KHR_ray_tracing_pipeline)
-        {
-            ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
-        }
-
-        if (VKEW_KHR_ray_query)
-        {
-            ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_RAY_QUERY_EXTENSION_NAME;
-        }
-
-
-        if (VKEW_KHR_acceleration_structure)
-        {
-            ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
-        }
-    }
-
-    if (VKEW_KHR_maintenance5)
-    {        
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME;
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME;
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_5_EXTENSION_NAME;
-    }
-    if (VKEW_KHR_maintenance4)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_4_EXTENSION_NAME;
-    }
-    if (VKEW_KHR_maintenance3)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_3_EXTENSION_NAME;
-    }
-    if (VKEW_KHR_maintenance2)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_2_EXTENSION_NAME;
-    }
-     if (VKEW_KHR_maintenance1)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_1_EXTENSION_NAME;
-    }
-    if (VKEW_KHR_push_descriptor)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME;
-    }
-#ifdef VK_EXT_full_screen_exclusive
-    if (VKEW_EXT_full_screen_exclusive)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME;
-    }
-#endif
-    if (VKEW_EXT_debug_marker && Vulkan.enableValidation)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DEBUG_MARKER_EXTENSION_NAME;
-    }
-    if (VKEW_KHR_synchronization2)
-    {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME;
-        
-    }
-
-
     for (;;)
     {
         // Initialize device creation info
@@ -2227,10 +2253,8 @@ VkResult vkewCreateDevice(void)
             ppEnabledExtensionNames, // ppEnabledExtensionNames
             pEnabledFeatures // pEnabledFeatures
         };
-
         // Base pointer for chaining extensions via pNext
         VkBaseInStructure* lastPNext = NULL;
-
         // Define extension structures
         VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
@@ -2239,36 +2263,30 @@ VkResult vkewCreateDevice(void)
             VK_FALSE, // robustImageAccess2
             VK_TRUE // nullDescriptor        
         };
-
         VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
             NULL,
             VK_TRUE // Enable synchronization2 features
         };
-
         VkPhysicalDeviceFeatures2 features2 = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
             NULL
         };
         features2.features.samplerAnisotropy = VK_TRUE;
-
         // Chain pNext properly
         if (VKEW_EXT_robustness2)
         {
             lastPNext = (VkBaseInStructure*)&robustness2;
             device_create_info.pNext = (VkBaseInStructure*)&robustness2;
         }
-
         if (VKEW_KHR_synchronization2)
         {
             if (lastPNext)
                 lastPNext->pNext = (VkBaseInStructure*)&sync2Features;
             else
                 device_create_info.pNext = (VkBaseInStructure*)&sync2Features;
-
             lastPNext = (VkBaseInStructure*)&sync2Features;
         }
-
         // Create the Vulkan logical device
         VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, NULL, &Vulkan.i.device));
         if (ret == VK_SUCCESS)
@@ -2284,33 +2302,23 @@ VkResult vkewCreateDevice(void)
             return VK_ERROR_INITIALIZATION_FAILED;
         }
     }
-
     vkewInterfaceLevelInit(Vulkan.i);
     Vulkan.graphicsQueueFamilyIndex = selected_graphics_queue_family_index;
     Vulkan.presentQueueFamilyIndex = selected_present_queue_family_index;
     Vulkan.transfertQueueFamilyIndex = selected_transfert_queue_family_index;
     Vulkan.computeQueueFamilyIndex = selected_compute_queue_family_index;
     Vulkan.queueNodeIndex = Vulkan.graphicsQueueFamilyIndex;
-    vkGetDeviceQueue(Vulkan.i.device, Vulkan.queueNodeIndex, 0, &Vulkan.renderQueue);
     Vulkan.queueTransfertIndex = Vulkan.transfertQueueFamilyIndex;
-    vkGetDeviceQueue(Vulkan.i.device, Vulkan.queueTransfertIndex, 0, &Vulkan.transfertQueue);
     Vulkan.queueComputeIndex = Vulkan.computeQueueFamilyIndex;
-    if (Vulkan.computeQueueFamilyIndex != UINT32_MAX)
-        vkGetDeviceQueue(Vulkan.i.device, Vulkan.queueComputeIndex, 0, &Vulkan.computeQueue);
-    else
-        Vulkan.computeQueue = Vulkan.renderQueue;
     vkGetPhysicalDeviceProperties(Vulkan.physicalDevice, &Vulkan.deviceProperties);
     vkGetPhysicalDeviceFeatures(Vulkan.physicalDevice, &Vulkan.deviceFeatures);
-
     uint32_t apiVersion = Vulkan.deviceProperties.apiVersion;    
     uint32_t major = VK_VERSION_MAJOR(apiVersion);
-    uint32_t minor = VK_VERSION_MINOR(apiVersion);
-    
+    uint32_t minor = VK_VERSION_MINOR(apiVersion);    
     VKEW_VERSION_1_1 = (major >= 1 && minor >= 1) || major > 1;
     VKEW_VERSION_1_2 = (major >= 1 && minor >= 2) || major > 1;
     VKEW_VERSION_1_3 = (major >= 1 && minor >= 3) || major > 1;
     VKEW_VERSION_1_4 = (major >= 1 && minor >= 4) || major > 1;
-   
     return VK_SUCCESS;
 }
 void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f)
@@ -2322,6 +2330,15 @@ void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePr
 {
     *p = Vulkan.rayTracingPipelineProperties;
     *f = Vulkan.accelerationStructureFeatures;
+}
+VkResult vkewDestroySurface(void)
+{
+	if (Vulkan.presentationSurface != VK_NULL_HANDLE)
+	{
+		vkDestroySurfaceKHR(Vulkan.i.instance, Vulkan.presentationSurface, NULL);
+		Vulkan.presentationSurface = VK_NULL_HANDLE;
+	}
+	return VK_SUCCESS;
 }
 VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat,
                            VkColorSpaceKHR colorSpace)
@@ -2357,12 +2374,11 @@ VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platform
     {
         return result;
     }
-    result = VK_CHECK(vkewCreateDevice());
+    result = VK_CHECK(vkewCreateDevice(deviceIndex));
     if (result != VK_SUCCESS)
     {
         return result;
     }
-
     vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &Vulkan.formatCount, NULL);
     Vulkan.surfaceFormats = (VkSurfaceFormatKHR*)l_calloc(Vulkan.formatCount, sizeof(VkSurfaceFormatKHR));
     vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &Vulkan.formatCount,
@@ -2555,33 +2571,6 @@ int vkewGetSwapChainCount(void)
     return Vulkan.swapChainParams.ImagesCount;
 }
 /// <summary>
-/// Get Graphics Queue
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-VkQueue vkewGetGraphicsQueue(void)
-{
-    return Vulkan.renderQueue;
-}
-/// <summary>
-/// Get Transfer Queue
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-VkQueue vkewGetTransferQueue(void)
-{
-    return Vulkan.transfertQueue;
-}
-/// <summary>
-/// Get Transfer Queue
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-VkQueue vkewGetComputeQueue(void)
-{
-    return Vulkan.computeQueue;
-}
-/// <summary>
 /// Get Graphics Queue Family Index
 /// </summary>
 /// <param name=""></param>
@@ -2746,53 +2735,41 @@ VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired
     Vulkan.swapChainParams.Value = VK_NULL_HANDLE;
 #ifdef VK_EXT_full_screen_exclusive
     Vulkan.swapChainParams.Value = VK_NULL_HANDLE;
-
 #ifdef VK_EXT_full_screen_exclusive
     if (full_screen_exclusive && VKEW_EXT_full_screen_exclusive)
     {
         // Ensure Vulkan surface capabilities are queried before enabling fullscreen exclusive
         Vulkan.surfaceCapabilities2KHR.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
         Vulkan.surfaceCapabilities2KHR.pNext = NULL;
-
         Vulkan.physicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
         Vulkan.physicalDeviceSurfaceInfo2KHR.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
         Vulkan.physicalDeviceSurfaceInfo2KHR.surface = Vulkan.presentationSurface;
-
         VkResult capabilityResult = vkGetPhysicalDeviceSurfaceCapabilities2KHR(
             Vulkan.physicalDevice,
             &Vulkan.physicalDeviceSurfaceInfo2KHR,
             &Vulkan.surfaceCapabilities2KHR
         );
-
         Vulkan.supportsExclusiveFullscreen = (capabilityResult == VK_SUCCESS);
-
         if (Vulkan.supportsExclusiveFullscreen)
         {
             Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
             Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow(platformWindow, MONITOR_DEFAULTTOPRIMARY);
             Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.pNext = NULL;
-
             Vulkan.surfaceFullScreenExclusiveInfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
             Vulkan.surfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT;
             Vulkan.surfaceFullScreenExclusiveInfoEXT.pNext = &Vulkan.surfaceFullScreenExclusiveWin32InfoEXT;
-
             swap_chain_create_info.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
         }
     }
-
     // Attempt to create the swapchain
     VkResult result = vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value);
-
     if (result != VK_SUCCESS && Vulkan.supportsExclusiveFullscreen)
     {
         // Retry without fullscreen exclusive if the first attempt failed
         swap_chain_create_info.pNext = NULL;
         result = vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value);
     }
-
-
 #endif
-
 #endif
     if (Vulkan.swapChainParams.Value == VK_NULL_HANDLE)
     {
