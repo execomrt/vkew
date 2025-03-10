@@ -32,13 +32,6 @@
 #include <iostream>
 #include <cstring>
 
-#define VK_CHECK(f) { \
-    VkResult res = (f); \
-    if (res != VK_SUCCESS) { \
-        std::cerr << "Vulkan error at " << __FILE__ << ":" << __LINE__ << " - " << res << std::endl; \
-        exit(-1); \
-    } \
-}
 
 static VkBool32 useValidationLayer = VK_FALSE;
 
@@ -156,6 +149,48 @@ void CleanupVulkan() {
 #define IS_PLATFORM_WIN
 #include <windows.h>
 
+
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+    case WM_CLOSE:
+        PostQuitMessage(0);
+        return 0;
+    case WM_SIZE:
+        if (wParam != SIZE_MINIMIZED) {
+            vkewReleaseSwapChain();
+            RECT rect;
+            GetClientRect(hWnd, &rect);
+            VkExtent2D newExtent = { static_cast<uint32_t>(rect.right - rect.left), static_cast<uint32_t>(rect.bottom - rect.top) };
+            vkewCreateSwapChain(hWnd, 1, newExtent, 0, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
+        }
+        return 0;
+    }
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+HWND CreateWin32Window(HINSTANCE hInstance) {
+    WNDCLASS wc = {};
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = "TestWindowClass";
+    RegisterClass(&wc);
+
+    return CreateWindowEx(0, "TestWindowClass", "Test", WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, hInstance, nullptr);
+}
+
+void RunMessageLoop() {
+    MSG msg = {};
+    while (true) {
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) return;
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        DrawFrameVulkan();
+    }
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
     char* argv[] = { "app", lpCmdLine };
     int argc = 2;
@@ -173,4 +208,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow
 
     return 0;
 }
+
 #endif

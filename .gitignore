@@ -16,6 +16,8 @@
 *.gch
 *.pch
 
+build
+
 # Libraries
 *.lib
 *.a
