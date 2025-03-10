@@ -1,5 +1,5 @@
 ﻿# Vulkan Extension Wrangler
-This library allow to initialize Vulkan and adds some extensions. It doesn't requires extra library. The /vulkan folder might not be up to date.
+This library allow to initialize Vulkan and adds some extensions. It doesn't requires extra library.
 
 🔥 Core Features
 Instance and Device Management
@@ -58,6 +58,7 @@ Memory Management
 Fetches memory requirements (vkGetBufferMemoryRequirements).
 Supports memory mapping (vkMapMemory, vkUnmapMemory).
 Queries buffer and image device addresses (VK_KHR_buffer_device_address).
+
 🌍 Platform-Specific Features
 Windows (VK_USE_PLATFORM_WIN32_KHR)
 
@@ -81,48 +82,46 @@ Feature Detection
 Checks for optional Vulkan features like VK_KHR_synchronization2, VK_EXT_descriptor_indexing, etc.
 Queries vkewSupportsFullscreenExclusive() for full-screen support.
 
-
 Supported Vulkan Extensions in VKEW
 The Vulkan Extension Wrangler (VKEW) automatically detects and enables supported extensions. Each extension has a corresponding boolean flag (VKEW_<EXTENSION_NAME>) that indicates whether the extension is available.
 
 ✅ Core Vulkan Extensions
-Extension	Feature
-VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2	Required for querying additional device properties.
-VK_KHR_DRIVER_PROPERTIES	Provides detailed information about the Vulkan driver.
-VK_KHR_MAINTENANCE_1	Fixes descriptor set binding and adds other minor improvements.
-VK_KHR_MAINTENANCE_2	Standardizes image block matching and other optimizations.
-VK_KHR_MAINTENANCE_3	Introduces descriptor indexing.
-VK_KHR_MAINTENANCE_4	Extends limits and improves resource creation.
-VK_KHR_MAINTENANCE_5	Enables dynamic rendering, improves image transitions.
+	Extension	Feature
+	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2	Required for querying additional device properties.
+	VK_KHR_DRIVER_PROPERTIES	Provides detailed information about the Vulkan driver.
+	VK_KHR_MAINTENANCE_1	Fixes descriptor set binding and adds other minor improvements.
+	VK_KHR_MAINTENANCE_2	Standardizes image block matching and other optimizations.
+	VK_KHR_MAINTENANCE_3	Introduces descriptor indexing.
+	VK_KHR_MAINTENANCE_4	Extends limits and improves resource creation.
+	VK_KHR_MAINTENANCE_5	Enables dynamic rendering, improves image transitions.
 🖼 Swap Chain & Rendering Extensions
-Extension	Feature
-VK_KHR_SWAPCHAIN	Enables swap chains for rendering to window surfaces.
-VK_KHR_IMAGE_FORMAT_LIST	Optimizes swap chain image formats.
-VK_KHR_CREATE_RENDERPASS_2	Improves render pass creation.
-VK_KHR_DYNAMIC_RENDERING	Allows rendering without predefined render passes.
-VK_KHR_DEPTH_STENCIL_RESOLVE	Improves multisampling depth-stencil resolve.
+	Extension	Feature
+	VK_KHR_SWAPCHAIN	Enables swap chains for rendering to window surfaces.
+	VK_KHR_IMAGE_FORMAT_LIST	Optimizes swap chain image formats.
+	VK_KHR_CREATE_RENDERPASS_2	Improves render pass creation.
+	VK_KHR_DYNAMIC_RENDERING	Allows rendering without predefined render passes.
+	VK_KHR_DEPTH_STENCIL_RESOLVE	Improves multisampling depth-stencil resolve.
 🚀 Synchronization & Performance Extensions
-Extension	Feature
-VK_KHR_SYNCHRONIZATION_2	Provides enhanced synchronization primitives.
-VK_KHR_TIMELINE_SEMAPHORE	Enables timeline semaphores for better GPU-CPU synchronization.
-VK_KHR_SHADER_CLOCK	Allows shaders to access a high-resolution clock.
-VK_KHR_SHADER_FLOAT16_INT8	Enables float16 and int8 arithmetic in shaders.
+	Extension	Feature
+	VK_KHR_SYNCHRONIZATION_2	Provides enhanced synchronization primitives.
+	VK_KHR_TIMELINE_SEMAPHORE	Enables timeline semaphores for better GPU-CPU synchronization.
+	VK_KHR_SHADER_CLOCK	Allows shaders to access a high-resolution clock.
+	VK_KHR_SHADER_FLOAT16_INT8	Enables float16 and int8 arithmetic in shaders.
 🛠 Advanced Features & Optimization
-Extension	Feature
-VK_KHR_BUFFER_DEVICE_ADDRESS	Enables direct access to buffer device addresses.
-VK_EXT_DESCRIPTOR_INDEXING	Supports bindless resources and large descriptor sets.
-VK_KHR_PUSH_DESCRIPTOR	Allows directly pushing descriptors to shaders.
-VK_KHR_DEFERRED_HOST_OPERATIONS	Optimizes host-side Vulkan operations.
+	Extension	Feature
+	VK_KHR_BUFFER_DEVICE_ADDRESS	Enables direct access to buffer device addresses.
+	VK_EXT_DESCRIPTOR_INDEXING	Supports bindless resources and large descriptor sets.
+	VK_KHR_PUSH_DESCRIPTOR	Allows directly pushing descriptors to shaders.
+	VK_KHR_DEFERRED_HOST_OPERATIONS	Optimizes host-side Vulkan operations.
 🔦 Debugging & Developer Tools
-Extension	Feature
-VK_EXT_DEBUG_MARKER	Allows naming Vulkan objects (useful for debugging).
-VK_EXT_ROBUSTNESS_2	Adds stricter memory safety checks for buffers/images.
+	Extension	Feature
+	VK_EXT_DEBUG_MARKER	Allows naming Vulkan objects (useful for debugging).
+	VK_EXT_ROBUSTNESS_2	Adds stricter memory safety checks for buffers/images.
 🔦 Ray Tracing Support (Optional)
-Extension	Feature
-VK_KHR_RAY_TRACING_PIPELINE	Enables ray tracing pipeline support.
-VK_KHR_RAY_QUERY	Allows ray tracing from any shader stage.
-VK_KHR_ACCELERATION_STRUCTURE	Provides ray tracing acceleration structure support.
+	Extension	Feature
+	VK_KHR_RAY_TRACING_PIPELINE	Enables ray tracing pipeline support.
+	VK_KHR_RAY_QUERY	Allows ray tracing from any shader stage.
+	VK_KHR_ACCELERATION_STRUCTURE	Provides ray tracing acceleration structure support.
 🎮 Platform-Specific Extensions
-Extension	Feature
-VK_EXT_FULL_SCREEN_EXCLUSIVE	Enables exclusive full-screen support (Windows only).
-📝 Summary
+	Extension	Feature
+	VK_EXT_FULL_SCREEN_EXCLUSIVE	Enables exclusive full-screen support (Windows only).
