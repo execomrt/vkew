@@ -32,8 +32,17 @@
 #include <iostream>
 #include <cstring>
 
+#ifdef _WIN32
+#define IS_PLATFORM_WIN
+#endif
 
-static VkBool32 useValidationLayer = VK_FALSE;
+
+#define VK_ASSERT(f) { \
+    if (!(f)) { \
+        std::cerr << "Assertion failed at " << __FILE__ << ":" << __LINE__ << std::endl; \
+    } \
+}
+static VkBool32 useValidationLayer = VK_TRUE;
 
 struct VulkanResources {
     VkDevice device;
@@ -122,6 +131,8 @@ void RenderFrameVulkan() {
 }
 
 void DrawFrameVulkan() {
+    VK_ASSERT(vulkan.swapChain);
+    VK_ASSERT(vulkan.device);
     VK_CHECK(vkAcquireNextImageKHR(vulkan.device, vulkan.swapChain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &vulkan.imageIndex));
     RenderFrameVulkan();
 
@@ -145,10 +156,24 @@ void CleanupVulkan() {
     vkewDestroy();
 }
 
-#ifdef _WIN32
-#define IS_PLATFORM_WIN
+#ifdef IS_PLATFORM_WIN
 #include <windows.h>
 
+void vkewOnErrors(void) 
+{
+	OutputDebugStringA("vkewOnErrors\n");
+}
+
+void vkewLogMessage(const char* pszFormat, ...) {
+    va_list args;
+    va_start(args, pszFormat);
+    vprintf(pszFormat, args);
+    char buffer[8192];
+    vsnprintf(buffer, sizeof(buffer), pszFormat, args);
+	lstrcatA(buffer, "\n");
+    OutputDebugStringA(buffer);
+    va_end(args);
+}
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -156,13 +181,15 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         PostQuitMessage(0);
         return 0;
     case WM_SIZE:
-        if (wParam != SIZE_MINIMIZED) {
+        if (wParam != SIZE_MINIMIZED && vulkan.device) {
             vkewReleaseSwapChain();
             RECT rect;
             GetClientRect(hWnd, &rect);
             VkExtent2D newExtent = { static_cast<uint32_t>(rect.right - rect.left), static_cast<uint32_t>(rect.bottom - rect.top) };
             vkewCreateSwapChain(hWnd, 1, newExtent, 0, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
+			vulkan.swapChain = vkewGetSwapChain();
         }
+       
         return 0;
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -191,17 +218,19 @@ void RunMessageLoop() {
     }
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) 
+{
     char* argv[] = { "app", lpCmdLine };
     int argc = 2;
     ParseCommandLineArgs(argc, argv);
 
     HWND hWindow = CreateWin32Window(hInstance);
     if (!hWindow) return -1;
-    ShowWindow(hWindow, SW_SHOW);
+    
 
     InitializeVulkan();
     CreateSwapChainVulkan(hWindow, hInstance);
+    ShowWindow(hWindow, SW_SHOW);
     RunMessageLoop();
     DestroySwapChainVulkan();
     CleanupVulkan();
