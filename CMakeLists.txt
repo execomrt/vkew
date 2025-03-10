@@ -5,7 +5,7 @@ project(VkewWin32Project LANGUAGES C CXX)
 
 
 # Add source files
-set(SOURCES src/vkTest.cpp src/vkew.c)
+set(SOURCES src/vkTest.cpp src/vkSwapChain.cpp src/vkew.c)
 
 # Add Vulkan include directory (assuming "vulkan/" is at the root)
 include_directories(${CMAKE_SOURCE_DIR})

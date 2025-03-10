@@ -2,7 +2,7 @@
  ** The Vulkan Extension Wrangler Library
  ** Copyright (C) 2021, 2025 Stephane Denis
  ** All rights reserved.
- ** V 0.9.1
+ ** V 0.9.8
  **
  ** Redistribution and use in source and binary forms, with or without
  ** modification, are permitted provided that the following conditions are met:
@@ -28,68 +28,26 @@
  ** THE POSSIBILITY OF SUCH DAMAGE.
  * 
   */
+#ifdef _WIN32
+#define IS_PLATFORM_WIN
+#endif
+#ifdef IS_PLATFORM_WIN
+#include <windows.h>
+#endif
 #include "vkew.h"
 #include <iostream>
 #include <cstring>
 #include <vector>
-
-#ifdef _WIN32
-#define IS_PLATFORM_WIN
-#endif
-
-
-#ifdef IS_PLATFORM_WIN
-#include <windows.h>
-#endif
-
 #define VK_ASSERT(f) { \
     if (!(f)) { \
         std::cerr << "Assertion failed at " << __FILE__ << ":" << __LINE__ << std::endl; \
     } \
 }
 static VkBool32 useValidationLayer = VK_TRUE;
+#include "vkTest.h"
 
-class Semaphore
-{
-public:
-    Semaphore(VkDevice aDevice) {
-        VkSemaphoreCreateInfo sem_ci = {};
-        sem_ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        VK_CHECK(vkCreateSemaphore(aDevice, &sem_ci, nullptr, &value));
-		device = aDevice;
-    }
 
-    ~Semaphore() {
-        if (value) {
-            vkDestroySemaphore(device, value, nullptr);
-        }
-    }
-
-    VkDevice device;
-	VkSemaphore value;
-};
-
-using SemaphoreRef = std::shared_ptr<Semaphore>;
-
-struct VulkanResources {
-    VkDevice device;
-    VkSwapchainKHR swapChain;
-    VkQueue graphicsQueue;
-    VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
-    uint32_t imageIndex = 0;
-    uint32_t frameIndex = 0;
-	std::vector<SemaphoreRef> imageAvailableSemaphores;
-    std::vector<SemaphoreRef> renderFinishedSemaphores;
-    int GetSwapChainIndex() const { return frameIndex % vkewGetSwapChainCount(); }
-    void Cleanup()
-    {
-        imageAvailableSemaphores.clear();
-        renderFinishedSemaphores.clear();
-    }
-};
-
-VulkanResources g_Resources;
+static VulkanResources g_Resources;
 
 void ParseCommandLineArgs(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
@@ -98,76 +56,115 @@ void ParseCommandLineArgs(int argc, char* argv[]) {
         }
     }
 }
-
 void CreateCommandPoolVulkan() {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = vkewGetGraphicsQueueFamilyIndex();
-
     VK_CHECK(vkCreateCommandPool(g_Resources.device, &poolInfo, nullptr, &g_Resources.commandPool));
 }
-
 void CreateCommandBufferVulkan() {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = g_Resources.commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
-
     VK_CHECK(vkAllocateCommandBuffers(g_Resources.device, &allocInfo, &g_Resources.commandBuffer));
 }
-
 void CreateInflightSemaphoresVulkan() {
-    int swapChainCount = vkewGetSwapChainCount();
+    int swapChainCount = (int) g_Resources.swapChain->Images.size();
     g_Resources.imageAvailableSemaphores.resize(swapChainCount);
     g_Resources.renderFinishedSemaphores.resize(swapChainCount);
-
     for (int i = 0; i < swapChainCount; i++) {
         g_Resources.imageAvailableSemaphores[i] = std::make_shared<Semaphore>(g_Resources.device);
         g_Resources.renderFinishedSemaphores[i] = std::make_shared<Semaphore>(g_Resources.device);
     }
 }
-
 void OnResizeSwapChainVulkan(void* window, VkExtent2D* newExtent)
 {
-    vkewReleaseSwapChain();
-    vkewCreateSwapChain(window, 1, *newExtent, 0, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
-        
-    g_Resources.swapChain = vkewGetSwapChain();
+	g_Resources.swapChain = SwapChain::Create(window, vkewGetPhysicalDevice(), vkewGetDevice(), g_Resources.surface, *newExtent, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, 1, 0, g_Resources.swapChain);
     CreateInflightSemaphoresVulkan();
 }
-
-
 void CreateSwapChainVulkan(void* platformWindow, void* platformInstance) {
-    if (vkewCreateSurface(-1, platformInstance, platformWindow, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) != VK_SUCCESS) {
-        std::cerr << "Failed to create Vulkan surface" << std::endl;
-        exit(-1);
-    }
-
-    g_Resources.device = vkewGetDevice();
-    g_Resources.swapChain = vkewGetSwapChain();
+    g_Resources.surface = Surface::Create(vkewGetInstance(), platformInstance, platformWindow);
+    vkewCreateDevice(g_Resources.surface->Value, 0);
+	g_Resources.surface->GetPhysicalDeviceSurfaceFormats(vkewGetPhysicalDevice());
+    g_Resources.device = vkewGetDevice(); // 1st device
     vkGetDeviceQueue(g_Resources.device, vkewGetGraphicsQueueFamilyIndex(), 0, &g_Resources.graphicsQueue);
-
     CreateCommandPoolVulkan();
     CreateCommandBufferVulkan();
-    
 }
-
 void DestroySwapChainVulkan() {
-    vkewReleaseSwapChain();
+    g_Resources.swapChain = nullptr;
+    g_Resources.surface = nullptr;
     vkDestroyCommandPool(g_Resources.device, g_Resources.commandPool, nullptr);
-    
 }
 
-void RenderFrameVulkan() {
-    VkImage swapChainImage = vkewGetSwapChainImage(g_Resources.imageIndex);
+void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+    VkCommandBuffer commandBuffer = g_Resources.commandBuffer;
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(g_Resources.commandBuffer, &beginInfo));
+    VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
+    VkImageMemoryBarrier barrier = {};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags sourceStage;
+    VkPipelineStageFlags destinationStage;
+
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    }
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    VK_CHECK(vkEndCommandBuffer(commandBuffer));
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    VK_CHECK(vkQueueSubmit(g_Resources.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+    VK_CHECK(vkQueueWaitIdle(g_Resources.graphicsQueue));
+}
+
+
+void RenderFrameVulkan() {
+    VkImage swapChainImage = g_Resources.swapChain->Images[g_Resources.imageIndex];
+    
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VK_CHECK(vkBeginCommandBuffer(g_Resources.commandBuffer, &beginInfo));
     VkClearColorValue clearColor = { {0.0f, 1.0f, 0.0f, 1.0f} }; // Solid green
     VkImageSubresourceRange range = {};
     range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -175,16 +172,11 @@ void RenderFrameVulkan() {
     range.levelCount = 1;
     range.baseArrayLayer = 0;
     range.layerCount = 1;
-
     vkCmdClearColorImage(g_Resources.commandBuffer, swapChainImage, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
-
     VK_CHECK(vkEndCommandBuffer(g_Resources.commandBuffer));
-
     VkSemaphore semImageAvail = g_Resources.imageAvailableSemaphores[g_Resources.GetSwapChainIndex()]->value;
     VkSemaphore semRenderFinish = g_Resources.renderFinishedSemaphores[g_Resources.GetSwapChainIndex()]->value;
-
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
@@ -194,32 +186,24 @@ void RenderFrameVulkan() {
     submitInfo.pCommandBuffers = &g_Resources.commandBuffer;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &semRenderFinish;
-
     VK_CHECK(vkQueueSubmit(g_Resources.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
-
 }
-
 void DrawFrameVulkan() {
     VK_ASSERT(g_Resources.swapChain);
     VK_ASSERT(g_Resources.device);
-
     VkSemaphore semImageAvail = g_Resources.imageAvailableSemaphores[g_Resources.GetSwapChainIndex()]->value;
-
-    VK_CHECK(vkAcquireNextImageKHR(g_Resources.device, g_Resources.swapChain, UINT64_MAX, 
+    VK_CHECK(vkAcquireNextImageKHR(g_Resources.device, g_Resources.swapChain->Value, UINT64_MAX, 
         semImageAvail, VK_NULL_HANDLE, &g_Resources.imageIndex));
     RenderFrameVulkan();
-
     VkSemaphore semRenderFinish = g_Resources.renderFinishedSemaphores[g_Resources.GetSwapChainIndex()]->value;
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &semRenderFinish;
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &g_Resources.swapChain;
+    presentInfo.pSwapchains = &g_Resources.swapChain->Value;
     presentInfo.pImageIndices = &g_Resources.imageIndex;
-
     VkResult err = vkQueuePresentKHR(g_Resources.graphicsQueue, &presentInfo);
-
     if (err == VK_ERROR_OUT_OF_DATE_KHR)
     {
     }
@@ -228,28 +212,27 @@ void DrawFrameVulkan() {
     }
     else if (err == VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT)
     {
-        
     }
     g_Resources.frameIndex++;
 }
-
 void LogBreakOnError(void)
 {
+#ifdef IS_PLATFORM_WIN
     OutputDebugStringA("");
-    
+#endif
 }
-
 void LogMessageVulkan(VKEWMessageLevel level, const char* pszFormat, ...) {
     va_list args;
     va_start(args, pszFormat);
     vprintf(pszFormat, args);
     char buffer[8192];
     vsnprintf(buffer, sizeof(buffer), pszFormat, args);
+#ifdef IS_PLATFORM_WIN
     lstrcatA(buffer, "\n");
     OutputDebugStringA(buffer);
+#endif
     va_end(args);
 }
-
 void InitializeVulkan() {
 	VKEWSettings settings = {};
 	settings.stSize = sizeof(VKEWSettings);
@@ -263,22 +246,16 @@ void InitializeVulkan() {
 	settings.enableValidation = useValidationLayer;
 	settings.enableRaytracing = VK_FALSE;
     settings.enableDynamicRendering = VK_TRUE;
-
     if (vkewInit(&settings) != VK_SUCCESS) {
         std::cerr << "Failed to initialize Vulkan" << std::endl;
         exit(-1);
     }
 }
-
 void CleanupVulkan() {
-    
     g_Resources.Cleanup();
     vkewDestroy();
 }
-
 #ifdef IS_PLATFORM_WIN
-#include <windows.h>
-
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_CLOSE:
@@ -286,29 +263,24 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     case WM_SIZE:
         if (wParam != SIZE_MINIMIZED && g_Resources.device) {
-            
             RECT rect;
             GetClientRect(hWnd, &rect);
             VkExtent2D newExtent = { static_cast<uint32_t>(rect.right - rect.left), static_cast<uint32_t>(rect.bottom - rect.top) };
 			OnResizeSwapChainVulkan(hWnd, &newExtent);
         }
-       
         return 0;
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
-
 HWND CreateWin32Window(HINSTANCE hInstance) {
     WNDCLASS wc = {};
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = "TestWindowClass";
     RegisterClass(&wc);
-
     return CreateWindowEx(0, "TestWindowClass", "Test", WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, hInstance, nullptr);
 }
-
 void RunMessageLoop() {
     MSG msg = {};
     while (true) {
@@ -320,25 +292,25 @@ void RunMessageLoop() {
         DrawFrameVulkan();
     }
 }
-
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) 
 {
     char* argv[] = { "app", lpCmdLine };
     int argc = 2;
     ParseCommandLineArgs(argc, argv);
-
     HWND hWindow = CreateWin32Window(hInstance);
     if (!hWindow) return -1;
-    
-
     InitializeVulkan();
     CreateSwapChainVulkan(hWindow, hInstance);
     ShowWindow(hWindow, SW_SHOW);
     RunMessageLoop();
     DestroySwapChainVulkan();
     CleanupVulkan();
-
     return 0;
 }
+#else
 
+int main(int arg, char** argv)
+{
+    return -1;
+}
 #endif

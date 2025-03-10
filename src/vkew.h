@@ -66,40 +66,22 @@ extern int vkewInit(const VKEWSettings* lpArg);
 extern void vkewDestroy(void);
 
 extern VkDevice vkewGetDevice(void);
-extern VkExtent2D vkewGetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface_capabilities);
-extern VkExtent2D vkewGetSwapChainExtent2D(void);
-extern VkFormat vkewGetColorFormat(void);
-extern VkImageUsageFlags vkewGetSwapChainUsageFlags(const VkSurfaceCapabilitiesKHR* surface_capabilities);
-extern VkImage vkewGetSwapChainImage(int i);
 extern VkInstance vkewGetInstance(void);
 extern VkPhysicalDevice vkewGetPhysicalDevice(void);
-extern VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync);
 extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
+extern VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex);
 
-extern VkResult vkewDestroySurface(void);
-extern VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat,
-                                  VkColorSpaceKHR colorSpace);
-extern VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent,
-                                    int full_screen_exclusive, VkFormat colorFormat, VkColorSpaceKHR colorSpace);
 extern int vkewGetQueueNodeIndex(void);
 extern int vkewGetQueueTransfertIndex(void);
 extern int vkewGetComputeIndex(void);
-extern VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count,
-                                                 VkFormat colorFormat, VkColorSpaceKHR colorSpace);
-extern VkSurfaceKHR vkewGetPresentationSurface();
-extern VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities);
-extern VkSwapchainKHR vkewGetSwapChain(void);
 extern uint32_t vkewGetGraphicsQueueFamilyIndex(void);
 extern uint32_t vkewGetComputeQueueFamilyIndex(void);
 extern uint32_t vkewGetTransfertQueueFamilyIndex(void);
-extern int vkewGetSwapChainCount(void);
 extern int vkewSupportsFullscreenExclusive(void);
-extern uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surface_capabilities);
 extern void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f);
 extern void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePropertiesKHR* p, VkPhysicalDeviceAccelerationStructureFeaturesKHR* f);
-extern void vkewReleaseSwapChain(void);
 extern VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device);
-extern VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, uint32_t* selected_graphics_queue_family_index, uint32_t* selected_present_queue_family_index, uint32_t* selected_transfer_queue_family_index, uint32_t* selected_compute_queue_family_index);
+extern VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR presentation_surface, uint32_t* selected_graphics_queue_family_index, uint32_t* selected_present_queue_family_index, uint32_t* selected_transfer_queue_family_index, uint32_t* selected_compute_queue_family_index);
 extern VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index, uint32_t selected_present_queue_family_index, uint32_t selected_transfert_queue_family_index, uint32_t selected_compute_queue_family_index);
 #if defined VK_NO_PROTOTYPES
 

@@ -247,26 +247,6 @@ static const char* VkResult_ToString(VkResult result)
 /// <summary>
 /// 
 /// </summary>
-struct ImageParameters
-{
-    VkImage Value;
-    VkSampler Sampler;
-    VkDeviceMemory Memory;
-};
-/// <summary>
-/// 
-/// </summary>
-struct SwapChainParameters
-{
-    VkSwapchainKHR Value;
-    VkFormat Format;
-    struct ImageParameters* Images;
-    int ImagesCount;
-    VkExtent2D Extent;
-};
-/// <summary>
-/// 
-/// </summary>
 struct vkewContext
 {
     void* ctx;
@@ -284,17 +264,10 @@ struct vkewContext
     VkPhysicalDeviceFeatures deviceFeatures;
     VkPhysicalDeviceFeatures2 deviceFeatures2;
     VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceSurfaceInfo2KHR physicalDeviceSurfaceInfo2KHR;
+    
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
-    VkPresentModeKHR* presentationModes;
-    VkSurfaceFormatKHR* surfaceFormats;
-#ifdef VK_EXT_full_screen_exclusive
-    VkSurfaceFullScreenExclusiveInfoEXT surfaceFullScreenExclusiveInfoEXT;
-    VkSurfaceCapabilities2KHR surfaceCapabilities2KHR;
-    VkSurfaceFullScreenExclusiveWin32InfoEXT surfaceFullScreenExclusiveWin32InfoEXT;
-#endif
-    VkSurfaceKHR presentationSurface;
+
     const char** enabledExtensions;
     const char** validationLayerNames;
     uint32_t availableExtensionCount;
@@ -306,7 +279,7 @@ struct vkewContext
     int supportsExclusiveFullscreen;
     int validationLayerCount;
     size_t nodeIndex;
-    struct SwapChainParameters swapChainParams;
+    
     uint32_t current_buffer;
     uint32_t formatCount;
     uint32_t frame_index;
@@ -1328,12 +1301,7 @@ void vkewDestroy(void)
         Vulkan.i.device = VK_NULL_HANDLE;
     }
     if (Vulkan.i.instance != VK_NULL_HANDLE)
-    {
-        if (Vulkan.presentationSurface != VK_NULL_HANDLE)
-        {
-            vkDestroySurfaceKHR(Vulkan.i.instance, Vulkan.presentationSurface, NULL);
-            Vulkan.presentationSurface = VK_NULL_HANDLE;
-        }
+    {    
 #ifdef VK_EXT_debug_utils
         if (Vulkan.debugMessenger != VK_NULL_HANDLE)
         {
@@ -1995,6 +1963,7 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
     return VK_TRUE;
 }
 VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
+	                                       VkSurfaceKHR presentationSurface,
                                            uint32_t* selected_graphics_queue_family_index,
                                            uint32_t* selected_present_queue_family_index,
                                            uint32_t* selected_transfer_queue_family_index,
@@ -2016,7 +1985,7 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
     *selected_compute_queue_family_index = UINT32_MAX;
     for (uint32_t i = 0; i < queue_families_count; ++i)
     {
-        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, Vulkan.presentationSurface, &queue_present_support[i]);
+        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, presentationSurface, &queue_present_support[i]);
     }
     // Check for transfert only queue
     for (uint32_t i = 0; i < queue_families_count; ++i)
@@ -2080,7 +2049,7 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
 /// @brief 
 /// @param  
 /// @return 
-VkResult vkewCreateDevice(int aDeviceIndex)
+VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
 {
     VkInstance vkInstance = vkewGetInstance();
     uint32_t num_devices;
@@ -2101,6 +2070,7 @@ VkResult vkewCreateDevice(int aDeviceIndex)
     for (uint32_t i = 0; i < num_devices; ++i)
     {
         if (vkewCheckPhysicalDeviceProperties(physical_devices[i],
+            aSurface,
             &selected_graphics_queue_family_index,
             &selected_present_queue_family_index,
             &selected_transfert_queue_family_index,
@@ -2405,245 +2375,8 @@ void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePr
     *p = Vulkan.rayTracingPipelineProperties;
     *f = Vulkan.accelerationStructureFeatures;
 }
-VkResult vkewDestroySurface(void)
-{
-	if (Vulkan.presentationSurface != VK_NULL_HANDLE)
-	{
-		vkDestroySurfaceKHR(Vulkan.i.instance, Vulkan.presentationSurface, NULL);
-		Vulkan.presentationSurface = VK_NULL_HANDLE;
-	}
-	return VK_SUCCESS;
-}
-VkResult vkewCreateSurface(int deviceIndex, void* platformHandle, void* platformWindow, VkFormat colorFormat,
-                           VkColorSpaceKHR colorSpace)
-{
-    VkResult result;
-#if defined(_WIN32)
-    VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
-    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle; // provided by the platform code
-    surfaceCreateInfo.hwnd = (HWND)platformWindow; // provided by the platform code
-    result = VK_CHECK(vkCreateWin32SurfaceKHR(Vulkan.i.instance, &surfaceCreateInfo, NULL, &Vulkan.presentationSurface));
-#elif defined(__ANDROID__)
-	VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-	surfaceCreateInfo.window = platformWindow;
-	result = vkCreateAndroidSurfaceKHR(vkewGetInstance(), &surfaceCreateInfo, NULL, &Vulkan.presentationSurface);
-#elif defined (VK_USE_PLATFORM_VI_NN)
-	VkViSurfaceCreateInfoNN surfaceCreateInfo;
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN;
-	surfaceCreateInfo.pNext = NULL;
-	surfaceCreateInfo.flags = 0;
-	surfaceCreateInfo.window = platformWindow;
-	result = vkCreateViSurfaceNN(platformHandle, &surfaceCreateInfo, NULL, &Vulkan.presentationSurface);
-#elif defined (UNIX)
-	VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-	surfaceCreateInfo.connection = platformHandle;               // provided by the platform code
-	surfaceCreateInfo.window = platformWindow;                       // provided by the platform code
-	result = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
-#endif
-    if (result != VK_SUCCESS)
-    {
-        return result;
-    }
-    result = VK_CHECK(vkewCreateDevice(deviceIndex));
-    if (result != VK_SUCCESS)
-    {
-        return result;
-    }
-    vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &Vulkan.formatCount, NULL);
-    Vulkan.surfaceFormats = (VkSurfaceFormatKHR*)l_calloc(Vulkan.formatCount, sizeof(VkSurfaceFormatKHR));
-    vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &Vulkan.formatCount,
-                                         &Vulkan.surfaceFormats[0]);
-    // If the format list includes just one entry of VK_FORMAT_UNDEFINED,
-    // the surface has no preferred format. Otherwise, at least one
-    // supported format will be returned
-    if (Vulkan.formatCount == 1 && Vulkan.surfaceFormats[0].format == VK_FORMAT_UNDEFINED)
-    {
-        Vulkan.colorFormat = colorFormat;
-        Vulkan.colorSpace = Vulkan.surfaceFormats[0].colorSpace;
-    }
-    else
-    {
-        for (int i = 0; i < (int)Vulkan.formatCount; i++)
-        {
-            if (colorFormat == Vulkan.surfaceFormats[i].format &&
-                colorSpace == Vulkan.surfaceFormats[i].colorSpace)
-            {
-                Vulkan.colorFormat = Vulkan.surfaceFormats[i].format;
-                Vulkan.colorSpace = Vulkan.surfaceFormats[i].colorSpace;
-                return VK_SUCCESS;
-            }
-        }
-        Vulkan.colorFormat = Vulkan.surfaceFormats[0].format;
-        Vulkan.colorSpace = Vulkan.surfaceFormats[0].colorSpace;
-    }
-    return VK_SUCCESS;
-}
-VkFormat vkewGetColorFormat()
-{
-    return Vulkan.colorFormat;
-}
-uint32_t vkewGetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surface_capabilities)
-{
-    // Set of images defined in a swap chain may not always be available for application to render to:
-    // One may be displayed and one may wait in a queue to be presented
-    // If application wants to use more images at the same time it must ask for more images
-    uint32_t image_count = surface_capabilities->minImageCount + 1;
-    if ((surface_capabilities->maxImageCount > 0) &&
-        (image_count > surface_capabilities->maxImageCount))
-    {
-        image_count = surface_capabilities->maxImageCount;
-    }
-    return image_count;
-}
-VkSurfaceFormatKHR vkewGetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, VkFormat colorFormat,
-                                          VkColorSpaceKHR colorSpace)
-{
-    // If the list contains only one entry with undefined format
-    // it means that there are no preferred surface formats and any can be chosen
-    int i;
-    if ((count == 1) &&
-        (surface_formats[0].format == VK_FORMAT_UNDEFINED))
-    {
-        VkSurfaceFormatKHR ret;
-        ret.colorSpace = colorSpace;
-        ret.format = colorFormat;
-        return ret;
-    }
-    // Check if list contains most widely used R8 G8 B8 A8 format
-    // with nonlinear color space
-    for (i = 0; i < count; i++)
-    {
-        if (surface_formats[i].format == colorFormat &&
-            surface_formats[i].colorSpace == colorSpace)
-        {
-            return surface_formats[i];
-        }
-    }
-    // Return the first format from the list
-    return surface_formats[0];
-}
-VkExtent2D vkewGetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface_capabilities)
-{
-    // Special value of surface extent is width == height == -1
-    // If this is so we define the size by ourselves but it must fit within defined confines
-    if (surface_capabilities->currentExtent.width == -1)
-    {
-        VkExtent2D swap_chain_extent = {640, 480};
-        if (swap_chain_extent.width < surface_capabilities->minImageExtent.width)
-        {
-            swap_chain_extent.width = surface_capabilities->minImageExtent.width;
-        }
-        if (swap_chain_extent.height < surface_capabilities->minImageExtent.height)
-        {
-            swap_chain_extent.height = surface_capabilities->minImageExtent.height;
-        }
-        if (swap_chain_extent.width > surface_capabilities->maxImageExtent.width)
-        {
-            swap_chain_extent.width = surface_capabilities->maxImageExtent.width;
-        }
-        if (swap_chain_extent.height > surface_capabilities->maxImageExtent.height)
-        {
-            swap_chain_extent.height = surface_capabilities->maxImageExtent.height;
-        }
-        return swap_chain_extent;
-    }
-    // Most of the cases we define size of the swap_chain images equal to current window's size
-    return surface_capabilities->currentExtent;
-}
-VkImageUsageFlags vkewGetSwapChainUsageFlags(const VkSurfaceCapabilitiesKHR* surface_capabilities)
-{
-    // Color attachment flag must always be supported
-    // We can define other usage flags but we always need to check if they are supported
-    if (surface_capabilities->supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-    {
-        return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    }
-    return -1;
-}
-VkSurfaceTransformFlagBitsKHR vkewGetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities)
-{
-    // Sometimes images must be transformed before they are presented (i.e. due to device's orienation
-    // being other than default orientation)
-    // If the specified transform is other than current transform, presentation engine will transform image
-    // during presentation operation; this operation may hit performance on some platforms
-    // Here we don't want any transformations to occur so if the identity transform is supported use it
-    // otherwise just use the same transform as current transform
-    if (surface_capabilities->supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-    {
-        return VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    }
-    return surface_capabilities->currentTransform;
-}
-VkPresentModeKHR vkewGetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync)
-{
-    // FIFO present mode is always available
-    // MAILBOX is the lowest latency -Sync enabled mode (something like triple-buffering) so use it if available
-    int i;
-    // Not vsync => VK_PRESENT_MODE_IMMEDIATE_KHR
-    if (vsync == 0)
-    {
-        // IMMEDIATE is allowed to swap any time (even during scan-out; so tearing may occur).
-        for (i = 0; i < count; i++)
-            if (VK_PRESENT_MODE_IMMEDIATE_KHR == present_modes[i])
-                return present_modes[i];
-        // MAILBOX is like FIFO but has only one item queue, and it alows to replace the item in the queue by subsequent vkPresent.
-        for (i = 0; i < count; i++)
-            if (VK_PRESENT_MODE_MAILBOX_KHR == present_modes[i])
-                return present_modes[i];
-        // FIFO_RELAXED is like FIFO except it behaves like IMMEDIATE in the case that it had no image in queue for the last VBLANK swap (i.e. prefers tearing rather than showing old image).
-        for (i = 0; i < count; i++)
-            if (VK_PRESENT_MODE_FIFO_RELAXED_KHR == present_modes[i])
-                return present_modes[i];
-    }
-    // FIFO means first-in–first-out — it will queue images you present and swap them one by one in the order given, during the VBLANK interval.
-    for (i = 0; i < count; i++)
-        if (VK_PRESENT_MODE_FIFO_KHR == present_modes[i])
-            return present_modes[i];
-    return present_modes[0]; // We need something  ...
-}
-/// <summary>
-/// Release swap chain
-/// </summary>
-/// <param name=""></param>
-void vkewReleaseSwapChain(void)
-{   
-    if (Vulkan.swapChainParams.Value != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(Vulkan.i.device, Vulkan.swapChainParams.Value, NULL);
-        Vulkan.swapChainParams.Value = VK_NULL_HANDLE;
-    }
-}
-/// <summary>
-/// Get Swap Chain
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-VkSwapchainKHR vkewGetSwapChain(void)
-{
-    return Vulkan.swapChainParams.Value;
-}
-/// <summary>
-/// Get Swap chain extend 2D
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-VkExtent2D vkewGetSwapChainExtent2D(void)
-{
-    return Vulkan.swapChainParams.Extent;
-}
-/// <summary>
-/// Get swap chain count
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-int vkewGetSwapChainCount(void)
-{
-    return Vulkan.swapChainParams.ImagesCount;
-}
+
+
 /// <summary>
 /// Get Graphics Queue Family Index
 /// </summary>
@@ -2680,224 +2413,7 @@ VkDevice vkewGetDevice(void)
 {
     return Vulkan.i.device;
 }
-// Create swap chain
-// @param : vsync : enable vertical sync, if false, will try to use VK_PRESENT_MODE_IMMEDIATE_KHR
-// @param : exclusive : enable exclusive mode (TODO: Not implemented, see VK_KHR_display_swapchain).
-// https://raw.githubusercontent.com/KhronosGroup/Vulkan-Docs/master/appendices/VK_KHR_display_swapchain.txt
-VkResult vkewCreateSwapChain(void* platformWindow, int vsync, VkExtent2D desired_extent, int full_screen_exclusive,
-    VkFormat colorFormat, VkColorSpaceKHR colorSpace)
-{
-    VkSurfaceCapabilitiesKHR surface_capabilities;
-    if (VKEW_KHR_swapchain == 0)
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    if (VK_CHECK(
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &
-            surface_capabilities)) != VK_SUCCESS)
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    uint32_t formats_count;
-    if ((VK_CHECK(
-        vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &formats_count, NULL
-        )) != VK_SUCCESS) ||
-        (formats_count == 0))
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    VkSurfaceFormatKHR* surface_formats = l_calloc(formats_count, sizeof(VkSurfaceFormatKHR));
-    if (VK_CHECK(
-        vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &formats_count, &
-            surface_formats[0])) != VK_SUCCESS)
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    uint32_t present_modes_count;
-    if ((VK_CHECK(
-        vkGetPhysicalDeviceSurfacePresentModesKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &
-            present_modes_count, NULL)) != VK_SUCCESS) ||
-        (present_modes_count == 0))
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    VkPresentModeKHR* present_modes = l_calloc(present_modes_count, sizeof(VkSurfaceFormatKHR));
-    if (VK_CHECK(
-        vkGetPhysicalDeviceSurfacePresentModesKHR(Vulkan.physicalDevice, Vulkan.presentationSurface, &
-            present_modes_count, &present_modes[0])) != VK_SUCCESS)
-    {
-        return VK_ERROR_FORMAT_NOT_SUPPORTED;
-    }
-    uint32_t desired_number_of_images = vkewGetSwapChainNumImages(&surface_capabilities);
-    VkSurfaceFormatKHR desired_format = vkewGetSwapChainFormat(surface_formats, formats_count, colorFormat, colorSpace);
-    if (desired_extent.width == 0 && desired_extent.height == 0)
-    {
-        desired_extent = vkewGetSwapChainExtent(&surface_capabilities);
-    }
-    VkImageUsageFlags desired_usage = vkewGetSwapChainUsageFlags(&surface_capabilities);
-    VkSurfaceTransformFlagBitsKHR desired_transform = vkewGetSwapChainTransform(&surface_capabilities);
-    VkPresentModeKHR desired_present_mode = vkewGetSwapChainPresentMode(present_modes, present_modes_count, vsync);
-    VkSwapchainKHR old_swap_chain = Vulkan.swapChainParams.Value;
-    if ((int)(desired_usage) == -1)
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    if ((int)(desired_present_mode) == -1)
-    {
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    if ((desired_extent.width == 0) || (desired_extent.height == 0))
-    {
-        // Current surface size is (0, 0) so we can't create a swap chain and render anything (CanRender == false)
-        // But we don't wont to kill the application as this situation may occur i.e. when window gets minimized
-        return VK_SUCCESS;
-    }
-    VkSurfaceTransformFlagsKHR preTransform;
-    if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-    {
-        preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    }
-    else
-    {
-        preTransform = surface_capabilities.currentTransform;
-    }
-    VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    VkCompositeAlphaFlagBitsKHR compositeAlphaFlags[4] = {
-        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
-        VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
-        VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
-    };
-    for (uint32_t i = 0; i < ARRAY_SIZE(compositeAlphaFlags); i++)
-    {
-        if (surface_capabilities.supportedCompositeAlpha & compositeAlphaFlags[i])
-        {
-            compositeAlpha = compositeAlphaFlags[i];
-            break;
-        }
-    }
-    VkSwapchainCreateInfoKHR swap_chain_create_info = {
-        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, // VkStructureType                sType
-        NULL, // const void                    *pNext
-        0, // VkSwapchainCreateFlagsKHR      flags
-        Vulkan.presentationSurface, // VkSurfaceKHR                   surface
-        desired_number_of_images, // uint32_t                       minImageCount
-        desired_format.format, // VkFormat                       imageFormat
-        desired_format.colorSpace, // VkColorSpaceKHR                imageColorSpace
-        desired_extent, // VkExtent2D                     imageExtent
-        1, // uint32_t                       imageArrayLayers
-        desired_usage, // VkImageUsageFlags              imageUsage
-        VK_SHARING_MODE_EXCLUSIVE, // VkSharingMode                  imageSharingMode
-        0, // uint32_t                       queueFamilyIndexCount
-        NULL, // const uint32_t                *pQueueFamilyIndices
-        desired_transform, // VkSurfaceTransformFlagBitsKHR  preTransform
-        compositeAlpha, // VkCompositeAlphaFlagBitsKHR    compositeAlpha
-        desired_present_mode, // VkPresentModeKHR               presentMode
-        VK_TRUE, // VkBool32                       clipped
-        old_swap_chain // VkSwapchainKHR                 oldSwapchain
-    };
-    // Enable transfer source on swap chain images if supported
-    if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-    {
-        swap_chain_create_info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    }
-    // Enable transfer destination on swap chain images if supported
-    if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-    {
-        swap_chain_create_info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    }
-    Vulkan.swapChainParams.Value = VK_NULL_HANDLE;
-#ifdef VK_EXT_full_screen_exclusive
-    Vulkan.swapChainParams.Value = VK_NULL_HANDLE;
-#ifdef VK_EXT_full_screen_exclusive
-    if (full_screen_exclusive && VKEW_EXT_full_screen_exclusive)
-    {
-        // Ensure Vulkan surface capabilities are queried before enabling fullscreen exclusive
-        Vulkan.surfaceCapabilities2KHR.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
-        Vulkan.surfaceCapabilities2KHR.pNext = NULL;
-        Vulkan.physicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
-        Vulkan.physicalDeviceSurfaceInfo2KHR.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
-        Vulkan.physicalDeviceSurfaceInfo2KHR.surface = Vulkan.presentationSurface;
-        VkResult capabilityResult = vkGetPhysicalDeviceSurfaceCapabilities2KHR(
-            Vulkan.physicalDevice,
-            &Vulkan.physicalDeviceSurfaceInfo2KHR,
-            &Vulkan.surfaceCapabilities2KHR
-        );
-        Vulkan.supportsExclusiveFullscreen = (capabilityResult == VK_SUCCESS);
-        if (Vulkan.supportsExclusiveFullscreen)
-        {
-            Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
-            Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow(platformWindow, MONITOR_DEFAULTTOPRIMARY);
-            Vulkan.surfaceFullScreenExclusiveWin32InfoEXT.pNext = NULL;
-            Vulkan.surfaceFullScreenExclusiveInfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
-            Vulkan.surfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT;
-            Vulkan.surfaceFullScreenExclusiveInfoEXT.pNext = &Vulkan.surfaceFullScreenExclusiveWin32InfoEXT;
-            swap_chain_create_info.pNext = &Vulkan.surfaceFullScreenExclusiveInfoEXT;
-        }
-    }
-    // Attempt to create the swapchain
-    VkResult result = vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value);
-    if (result != VK_SUCCESS && Vulkan.supportsExclusiveFullscreen)
-    {
-        // Retry without fullscreen exclusive if the first attempt failed
-        swap_chain_create_info.pNext = NULL;
-        result = vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value);
-    }
-#endif
-#endif
-    if (Vulkan.swapChainParams.Value == VK_NULL_HANDLE)
-    {
-        if (VK_CHECK(
-            vkCreateSwapchainKHR(Vulkan.i.device, &swap_chain_create_info, NULL, &Vulkan.swapChainParams.Value)) !=
-            VK_SUCCESS)
-        {
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-    }
-    if (old_swap_chain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(Vulkan.i.device, old_swap_chain, NULL);
-    }
-    Vulkan.swapChainParams.Format = desired_format.format;
-    uint32_t image_count = 0;
-    if ((vkGetSwapchainImagesKHR(Vulkan.i.device, Vulkan.swapChainParams.Value, &image_count, NULL) != VK_SUCCESS) ||
-        (image_count == 0))
-    {
-        return VK_FALSE;
-    }
-    Vulkan.swapChainParams.ImagesCount = image_count;
-    Vulkan.swapChainParams.Images = (struct ImageParameters*)realloc(Vulkan.swapChainParams.Images,
-                                                                     sizeof(struct ImageParameters) * image_count);
-    memset(Vulkan.swapChainParams.Images, 0, sizeof(struct ImageParameters) * image_count);
-    VkImage* images = l_calloc(image_count, sizeof(VkImage));
-    if (vkGetSwapchainImagesKHR(Vulkan.i.device, Vulkan.swapChainParams.Value, &image_count, &images[0]) != VK_SUCCESS)
-    {
-        return VK_FALSE;
-    }
-    for (int i = 0; i < Vulkan.swapChainParams.ImagesCount; ++i)
-    {
-        Vulkan.swapChainParams.Images[i].Value = images[i];
-    }
-    l_free(images);
-    /*
-    if (full_screen_exclusive && VKEW_EXT_full_screen_exclusive)
-    {
-        auto status = vkGetPhysicalDeviceSurfacePresentModes2EXT(vkewGetPhysicalDevice(), &Vulkan.physicalDeviceSurfaceInfo2KHR, &Vulkan.numPresentationModes, NULL);
-        Vulkan.presentationModes = (VkPresentModeKHR*)l_calloc(Vulkan.numPresentationModes, sizeof(VkPresentModeKHR));
-        status = vkGetPhysicalDeviceSurfacePresentModes2EXT(vkewGetPhysicalDevice(), &Vulkan.physicalDeviceSurfaceInfo2KHR, &Vulkan.numPresentationModes, Vulkan.presentationModes);
-    }
-    */
-    Vulkan.swapChainParams.Extent = desired_extent;
-    return VK_SUCCESS;
-}
-/// <summary>
-/// Get presentation surface
-/// </summary>
-/// <returns></returns>
-VkSurfaceKHR vkewGetPresentationSurface()
-{
-    return Vulkan.presentationSurface;
-}
+
 /// <summary>
 /// Get physical device
 /// </summary>
@@ -2932,13 +2448,4 @@ int vkewGetQueueTransfertIndex(void)
 int vkewGetComputeIndex(void)
 {
     return Vulkan.queueComputeIndex;
-}
-/// <summary>
-/// Get swap chain imagfe
-/// </summary>
-/// <param name="i"></param>
-/// <returns></returns>
-VkImage vkewGetSwapChainImage(int i)
-{
-    return Vulkan.swapChainParams.Images[i].Value;
 }
