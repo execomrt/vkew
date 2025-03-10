@@ -37,13 +37,33 @@
 #include "vulkan/vulkan_win32.h"
 #endif
 typedef struct vkewContext VKEWContext;
+typedef enum vkewMessageLevel
+{
+	VKEW_MESSAGE_VERBOSE,
+	VKEW_MESSAGE_WARNING,
+	VKEW_MESSAGE_ERROR
+}VKEWMessageLevel;
+typedef struct vkewSettings
+{
+	size_t stSize;
+	const char* pApplicationName;
+	int applicationVersion;
+	const char* pEngineName;
+	int engineVersion;
+	int apiVersion;
+	void (*pfnLog)(VKEWMessageLevel level, const char* pszFormat, ...);
+	void (*pfnOnError)(void);
+	unsigned int enableValidation : 1;
+	unsigned int enableRaytracing : 1;
+	unsigned int enableDynamicRendering : 1;
+}VKEWSettings;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-extern int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation, int enableRaytracing);
+extern int vkewInit(const VKEWSettings* lpArg);
 extern void vkewDestroy(void);
-extern void vkewOnErrors(void);
-extern void vkewLogMessage(const char* pszFormat, ...);
 
 extern VkDevice vkewGetDevice(void);
 extern VkExtent2D vkewGetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface_capabilities);
@@ -216,6 +236,12 @@ extern PFN_vkUnmapMemory vkUnmapMemory;
 extern PFN_vkUpdateDescriptorSets vkUpdateDescriptorSets;
 extern PFN_vkWaitForFences vkWaitForFences;
 extern PFN_vkWaitSemaphores vkWaitSemaphores;
+extern PFN_vkCreateRenderPass2 vkCreateRenderPass2;
+extern PFN_vkCmdBeginRenderPass2 vkCmdBeginRenderPass2;
+extern PFN_vkCmdNextSubpass2 vkCmdNextSubpass2;
+extern PFN_vkCmdEndRenderPass2 vkCmdEndRenderPass2;
+
+
 #endif
 #if defined VK_NO_PROTOTYPES
 extern PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT;
@@ -308,6 +334,14 @@ extern PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTempl
 #endif
 #endif
 
+// VK_KHR_dynamic_rendering is a preprocessor guard. Do not pass it to API calls.
+#ifdef VK_KHR_dynamic_rendering 
+extern VkBool32 VKEW_KHR_dynamic_rendering;
+#if defined VK_NO_PROTOTYPES
+extern PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
+extern PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
+#endif
+#endif
 
 #ifdef VK_EXT_debug_utils
 extern VkBool32 VKEW_EXT_debug_utils;

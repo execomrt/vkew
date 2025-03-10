@@ -99,25 +99,8 @@ typedef struct VkInterface
    This is why the vkGetDeviceProcAddress exist to get the function that doesn't have dispatch logic.
    You are not obliged to use them but it may help get some extra speed.
 */
-#if defined VK_NO_PROTOTYPES
-static PFN_vkVoidFunction vkewGetDeviceProcAddr(VkDevice device, const char* name)
-{
-    return vkGetDeviceProcAddr(device, name);
-}
-static PFN_vkVoidFunction vkewGetInterfaceProcAddr(VkInterface value, const char* name)
-{
-    void* ret = value.device ? vkewGetDeviceProcAddr(value.device, name) : vkGetInstanceProcAddr(value.instance, name);
-    if (ret == NULL && value.device != VK_NULL_HANDLE)
-    {
-#ifdef _DEBUG
-        vkewLogMessage("<INFO> Entry point not found %s", name);
-#endif
-        return vkGetInstanceProcAddr(value.instance, name);
-    }
-    return ret;
-}
-#endif
-#if 1
+
+
 static inline const char* vkObjectType_ToString(VkObjectType input_value)
 {
     switch (input_value)
@@ -258,20 +241,9 @@ static const char* VkResult_ToString(VkResult result)
         }
     }
 }
-VkResult vkewPrintResult(VkResult result, const char* file, int line)
-{
-    if (result != VK_SUCCESS)
-    {
-        vkewLogMessage("%s(%d): %s", file, line, VkResult_ToString(result));
-    }
-    return result;
-}
-#else
-VkResult vkewPrintResult(VkResult result, const char* file, int line)
-{
-	return result;
-}
-#endif
+
+#define LogMessage(level, fmt, ...) Vulkan.settings.pfnLog(level, fmt, __VA_ARGS__)
+
 /// <summary>
 /// 
 /// </summary>
@@ -298,14 +270,13 @@ struct SwapChainParameters
 struct vkewContext
 {
     void* ctx;
+    VKEWSettings settings;
     VkApplicationInfo appInfo;
     VkColorSpaceKHR colorSpace;
     VkCommandBuffer* presentQueueCmdBuffers;
     VkDebugReportCallbackEXT messageCallback;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkExtensionProperties* availableExtensions;
-
-
     VkFormat colorFormat;
     VkInstanceCreateInfo instanceCreateInfo;
     VkInterface i;
@@ -350,6 +321,37 @@ struct vkewContext
     uint32_t queueComputeIndex;
 };
 static VKEWContext Vulkan;
+
+
+VkResult vkewPrintResult(VkResult result, const char* file, int line)
+{
+    if (result != VK_SUCCESS)
+    {
+        LogMessage(VKEW_MESSAGE_VERBOSE,"%s(%d): %s", file, line, VkResult_ToString(result));
+    }
+    return result;
+}
+
+#if defined VK_NO_PROTOTYPES
+static PFN_vkVoidFunction vkewGetDeviceProcAddr(VkDevice device, const char* name)
+{
+    return vkGetDeviceProcAddr(device, name);
+}
+static PFN_vkVoidFunction vkewGetInterfaceProcAddr(VkInterface value, const char* name)
+{
+    void* ret = value.device ? vkewGetDeviceProcAddr(value.device, name) : vkGetInstanceProcAddr(value.instance, name);
+    if (ret == NULL && value.device != VK_NULL_HANDLE)
+    {
+#ifdef _DEBUG
+        LogMessage(VKEW_MESSAGE_VERBOSE,"<INFO> Entry point not found %s", name);
+#endif
+        return vkGetInstanceProcAddr(value.instance, name);
+    }
+    return ret;
+}
+#endif
+
+
 static void AddExtensionLayer(const char* name)
 {
     Vulkan.enabledExtensions[Vulkan.enabledExtensionCount] = name;
@@ -439,6 +441,10 @@ VKEW_GET_FUNCTION(vkCreatePipelineCache);
 VKEW_GET_FUNCTION(vkCreatePipelineLayout);
 VKEW_GET_FUNCTION(vkCreateQueryPool);
 VKEW_GET_FUNCTION(vkCreateRenderPass);
+VKEW_GET_FUNCTION(vkCreateRenderPass2);
+VKEW_GET_FUNCTION(vkCmdBeginRenderPass2);
+VKEW_GET_FUNCTION(vkCmdNextSubpass2);
+VKEW_GET_FUNCTION(vkCmdEndRenderPass2);
 VKEW_GET_FUNCTION(vkCreateSampler);
 VKEW_GET_FUNCTION(vkCreateSemaphore);
 VKEW_GET_FUNCTION(vkCreateShaderModule);
@@ -597,6 +603,24 @@ static int vkewInit_VK_KHR_get_surface_capabilities2(VkInterface value)
 #endif
 }
 #endif
+
+// VK_KHR_dynamic_rendering is a preprocessor guard. Do not pass it to API calls.
+#ifdef  VK_KHR_dynamic_rendering 
+VkBool32 VKEW_KHR_dynamic_rendering;
+#if defined VK_NO_PROTOTYPES
+PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
+PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
+#endif
+
+static int vkewInit_VK_KHR_dynamic_rendering(VkInterface value)
+{
+    VKEW_GET_FUNCTION(vkCmdBeginRenderingKHR);
+    VKEW_GET_FUNCTION(vkCmdEndRenderingKHR);
+    return VK_TRUE;
+}
+#endif
+
+
 #ifdef VK_KHR_push_descriptor
 VkBool32 VKEW_KHR_push_descriptor;
 #if defined VK_NO_PROTOTYPES
@@ -670,6 +694,26 @@ static int vkewInit_VK_KHR_maintenance4(VkInterface value)
         vkGetDeviceImageSparseMemoryRequirementsKHR != NULL;
 }
 #endif
+
+#ifdef VK_KHR_create_renderpass2
+VkBool32 VKEW_KHR_create_renderpass2;
+PFN_vkCreateRenderPass2KHR vkCreateRenderPass2KHR;
+PFN_vkCmdBeginRenderPass2KHR vkCmdBeginRenderPass2KHR;
+PFN_vkCmdNextSubpass2KHR vkCmdNextSubpass2KHR;
+PFN_vkCmdEndRenderPass2KHR vkCmdEndRenderPass2KHR;
+static int vkewInit_VK_KHR_create_renderpass2(VkInterface value)
+{
+	VKEW_GET_FUNCTION(vkCreateRenderPass2KHR);
+	VKEW_GET_FUNCTION(vkCmdBeginRenderPass2KHR);
+	VKEW_GET_FUNCTION(vkCmdNextSubpass2KHR);
+	VKEW_GET_FUNCTION(vkCmdEndRenderPass2KHR);
+	return vkCreateRenderPass2KHR != NULL &&
+		vkCmdBeginRenderPass2KHR != NULL &&
+		vkCmdNextSubpass2KHR != NULL &&
+		vkCmdEndRenderPass2KHR != NULL;
+}
+#endif
+
 #ifdef VK_KHR_maintenance5
 VkBool32 VKEW_KHR_maintenance5;
 PFN_vkCmdBindIndexBuffer2KHR             vkCmdBindIndexBuffer2KHR;
@@ -1075,11 +1119,17 @@ int vkewInterfaceLevelInit(VkInterface value)
 #ifdef VK_KHR_push_descriptor
     vkewInit_VK_KHR_push_descriptor(value);
 #endif
+#ifdef VK_KHR_dynamic_rendering
+	vkewInit_VK_KHR_dynamic_rendering(value);
+#endif
 #ifdef VK_EXT_full_screen_exclusive
     vkewInit_VK_EXT_full_screen_exclusive(value);
 #endif
 #ifdef VK_KHR_maintenance4
     vkewInit_VK_KHR_maintenance4(value);
+#endif
+#ifdef VK_KHR_create_renderpass2
+	vkewInit_VK_KHR_create_renderpass2(value);
 #endif
 #ifdef VK_KHR_maintenance5
     vkewInit_VK_KHR_maintenance5(value);
@@ -1219,6 +1269,13 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkUpdateDescriptorSets);
     VKEW_GET_FUNCTION(vkWaitForFences);
     VKEW_GET_FUNCTION(vkWaitSemaphores);
+    VKEW_GET_FUNCTION(vkCreateRenderPass2);
+    VKEW_GET_FUNCTION(vkCmdBeginRenderPass2);
+    VKEW_GET_FUNCTION(vkCmdNextSubpass2);
+    VKEW_GET_FUNCTION(vkCmdEndRenderPass2);
+
+
+
 #ifdef VK_EXT_full_screen_exclusive
 #endif
 #ifdef VK_KHR_android_surface
@@ -1310,16 +1367,16 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
 	void* pUserData)
 {
 	if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-		vkewLogMessage("ERROR: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
+		LogMessage(VKEW_MESSAGE_VERBOSE,"ERROR: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
 	}
 	else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
-		vkewLogMessage("WARNING: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
+		LogMessage(VKEW_MESSAGE_VERBOSE,"WARNING: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
 	}
 	else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-		vkewLogMessage("INFO: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
+		LogMessage(VKEW_MESSAGE_VERBOSE,"INFO: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
 	}
 	else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
-		vkewLogMessage("DEBUG: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
+		LogMessage(VKEW_MESSAGE_VERBOSE,"DEBUG: [%s] Code %d : %s", pLayerPrefix, msgCode, pMsg);
 	}
 	return VK_TRUE;
 }
@@ -1412,34 +1469,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsCallback(
             l_strncat(message, messageLen, tmp_message);
         }
     }
-#ifdef _WIN32
-    vkewLogMessage("%s\n", message);
+    LogMessage(VKEW_MESSAGE_VERBOSE,"%s\n", message);
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
-        vkewOnErrors();
+        if (Vulkan.settings.pfnOnError)
+            Vulkan.settings.pfnOnError();
     }
-#elif defined(VK_USE_PLATFORM_VI_NN)
-	vkewLogMessage("%s\n", message);
-#elif defined(__ANDROID__)
-	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-		__android_log_print(ANDROID_LOG_INFO, APP_SHORT_NAME, "%s", message);
-	}
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-		__android_log_print(ANDROID_LOG_WARN, APP_SHORT_NAME, "%s", message);
-	}
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-		__android_log_print(ANDROID_LOG_ERROR, APP_SHORT_NAME, "%s", message);
-	}
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-		__android_log_print(ANDROID_LOG_VERBOSE, APP_SHORT_NAME, "%s", message);
-	}
-	else {
-		__android_log_print(ANDROID_LOG_INFO, APP_SHORT_NAME, "%s", message);
-	}
-#else
-	printf("%s\n", message);
-	fflush(stdout);
-#endif
+
     l_free(message);
     // Don't bail out, but keep going.
     return VK_FALSE;
@@ -1460,7 +1496,7 @@ static VkBool32 _vkewCheckLayerAvailabilty(const uint32_t check_count, const cha
         }
         if (!found)
         {
-            vkewLogMessage("<WARNING> Layer '%s' not found", check_names[i]);
+            LogMessage(VKEW_MESSAGE_VERBOSE,"<WARNING> Layer '%s' not found", check_names[i]);
             return 0;
         }
     }
@@ -1632,7 +1668,7 @@ static void InitExtensionsLayers(int enableValidation)
     }
     if (!surfaceExtFound)
     {
-        vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_SURFACE_EXTENSION_NAME
+        LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_SURFACE_EXTENSION_NAME
                        " extension.\n\n"
                        "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
                        "Please look at the Getting Started guide for additional information.\n",
@@ -1641,50 +1677,50 @@ static void InitExtensionsLayers(int enableValidation)
     if (!platformSurfaceExtFound)
     {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-        vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+        LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_WIN32_SURFACE_EXTENSION_NAME
                        " extension.\n\n"
                        "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
                        "Please look at the Getting Started guide for additional information.\n",
                        "vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_MVK_IOS_SURFACE_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_MVK_IOS_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
 			"vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_MVK_MACOS_SURFACE_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_MVK_MACOS_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
 			"vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_XCB_SURFACE_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_XCB_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
 			"vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
 			"vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_MIR_KHR)
 #elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_DISPLAY_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_DISPLAY_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
 			"vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
 			"vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
-		vkewLogMessage("vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_XLIB_SURFACE_EXTENSION_NAME
+		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_XLIB_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
 			"Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
 			"Please look at the Getting Started guide for additional information.\n",
@@ -1706,10 +1742,10 @@ static void ActivateDebugReport()
 		case VK_SUCCESS:
 			break;
 		case VK_ERROR_OUT_OF_HOST_MEMORY:
-			vkewLogMessage("CreateDebugUtilsMessengerEXT: out of host memory");
+			LogMessage(VKEW_MESSAGE_VERBOSE,"CreateDebugUtilsMessengerEXT: out of host memory");
 			break;
 		default:
-			vkewLogMessage("CreateDebugUtilsMessengerEXT: unknown failure");
+			LogMessage(VKEW_MESSAGE_VERBOSE,"CreateDebugUtilsMessengerEXT: unknown failure");
 			break;
 }
 	}
@@ -1724,10 +1760,10 @@ static void ActivateDebugReport()
         case VK_SUCCESS:
             break;
         case VK_ERROR_OUT_OF_HOST_MEMORY:
-            vkewLogMessage("CreateDebugUtilsMessengerEXT: out of host memory");
+            LogMessage(VKEW_MESSAGE_VERBOSE,"CreateDebugUtilsMessengerEXT: out of host memory");
             break;
         default:
-            vkewLogMessage("CreateDebugUtilsMessengerEXT: unknown failure");
+            LogMessage(VKEW_MESSAGE_VERBOSE,"CreateDebugUtilsMessengerEXT: unknown failure");
             break;
         }
     }
@@ -1759,19 +1795,20 @@ static void InitDebugReport()
 #endif
     }
 }
-int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersion, int enableValidation, int enableRaytracing)
+int vkewInit(const VKEWSettings* lpArgs)
 {
     VkResult err;
     const char* enabledExtensions[64];
     const char* validationLayerNames[64];
+    Vulkan.settings = *lpArgs;
     Vulkan.validationLayerNames = validationLayerNames;
     Vulkan.validationLayerCount = 0;
     Vulkan.enabledExtensions = enabledExtensions;
     Vulkan.enabledExtensionCount = 0;
     VkApplicationInfo applicationInfo = {0};
     VkInstanceCreateInfo instanceCreateInfo = {0};
-    Vulkan.enableValidation = enableValidation != 0;
-    Vulkan.enableRaytracing = enableRaytracing;
+    Vulkan.enableValidation = Vulkan.settings.enableValidation != 0;
+    Vulkan.enableRaytracing = Vulkan.settings.enableRaytracing;
 #if defined VK_NO_PROTOTYPES
 #if defined(_WIN32)
 #ifdef UNICODE
@@ -1799,12 +1836,12 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
 #endif
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     applicationInfo.pNext = NULL;
-    applicationInfo.pApplicationName = pApplicationName;
-    applicationInfo.applicationVersion = 1;
-    applicationInfo.pEngineName = pEngineName;
-    applicationInfo.engineVersion = 2;
-    applicationInfo.apiVersion = apiVersion;
-    enableValidation = InitValidationLayers(enableValidation);
+    applicationInfo.pApplicationName = Vulkan.settings.pApplicationName;
+    applicationInfo.applicationVersion = Vulkan.settings.applicationVersion;
+    applicationInfo.pEngineName = Vulkan.settings.pEngineName;
+    applicationInfo.engineVersion = Vulkan.settings.engineVersion;
+    applicationInfo.apiVersion = Vulkan.settings.apiVersion;
+    int enableValidation = InitValidationLayers(Vulkan.settings.enableValidation);
     InitExtensionsLayers(enableValidation);
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pNext = NULL;
@@ -1825,21 +1862,21 @@ int vkewInit(const char* pApplicationName, const char* pEngineName, int apiVersi
         &Vulkan.i.instance)); //pInstance points a VkInstance handle in which the resulting instance is returned.
     if (err == VK_ERROR_INCOMPATIBLE_DRIVER)
     {
-        vkewLogMessage(
+        LogMessage(VKEW_MESSAGE_VERBOSE,
             "Cannot find a compatible Vulkan installable client driver (ICD).\n\n"
             "Please look at the Getting Started guide for additional information.\n",
             "vkCreateInstance Failure");
     }
     else if (err == VK_ERROR_EXTENSION_NOT_PRESENT)
     {
-        vkewLogMessage(
+        LogMessage(VKEW_MESSAGE_VERBOSE,
             "Cannot find a specified extension library.\n"
             "Make sure your layers path is set appropriately.\n",
             "vkCreateInstance Failure");
     }
     else if (err)
     {
-        vkewLogMessage(
+        LogMessage(VKEW_MESSAGE_VERBOSE,
             "vkCreateInstance failed.\n\n"
             "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
             "Please look at the Getting Started guide for additional information.\n",
@@ -1899,6 +1936,10 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
         VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_push_descriptor = checkExtensionAvailability(
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_dynamic_rendering = checkExtensionAvailability(
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_KHR_create_renderpass2 = checkExtensionAvailability(
+		VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance1 = checkExtensionAvailability(
         VK_KHR_MAINTENANCE1_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance2 = checkExtensionAvailability(
@@ -1949,6 +1990,7 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
         deviceProperties2.pNext = &Vulkan.rayTracingPipelineProperties;
         vkGetPhysicalDeviceProperties2(physical_device, &deviceProperties2);
     }
+
     l_free(available_extensions);
     return VK_TRUE;
 }
@@ -2149,11 +2191,20 @@ VkResult vkewCreateDevice(int aDeviceIndex)
     }
     if (VKEW_KHR_maintenance5)
     {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME;
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;        
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME;
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_5_EXTENSION_NAME;
     }
+    if (VKEW_KHR_create_renderpass2)
+    {
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_maintenance5 || VKEW_KHR_dynamic_rendering)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME;
+    }
+
+    
     if (VKEW_KHR_maintenance4)
     {
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_4_EXTENSION_NAME;
@@ -2173,6 +2224,10 @@ VkResult vkewCreateDevice(int aDeviceIndex)
     if (VKEW_KHR_push_descriptor)
     {
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME;
+    }
+    if (VKEW_KHR_dynamic_rendering)
+    {
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME;
     }
 #ifdef VK_EXT_full_screen_exclusive
     if (VKEW_EXT_full_screen_exclusive)
@@ -2272,6 +2327,12 @@ VkResult vkewCreateDevice(int aDeviceIndex)
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
             NULL
         };
+
+		VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+			NULL,
+			VK_TRUE // Enable dynamic rendering features
+		};
         features2.features.samplerAnisotropy = VK_TRUE;
         // Chain pNext properly
         if (VKEW_EXT_robustness2)
@@ -2287,6 +2348,19 @@ VkResult vkewCreateDevice(int aDeviceIndex)
                 device_create_info.pNext = (VkBaseInStructure*)&sync2Features;
             lastPNext = (VkBaseInStructure*)&sync2Features;
         }
+
+        if (VKEW_KHR_dynamic_rendering)
+        {
+            if (lastPNext)
+                lastPNext->pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+            else
+                device_create_info.pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+            lastPNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+
+        };
+        
+        
+
         // Create the Vulkan logical device
         VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, NULL, &Vulkan.i.device));
         if (ret == VK_SUCCESS)
