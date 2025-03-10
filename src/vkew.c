@@ -2,7 +2,7 @@
  ** The Vulkan Extension Wrangler Library
  ** Copyright (C) 2021, 2025 Stephane Denis
  ** All rights reserved.
- ** V 0.9.1
+ ** V 0.9.8
  **
  ** Redistribution and use in source and binary forms, with or without
  ** modification, are permitted provided that the following conditions are met:
@@ -92,6 +92,7 @@ typedef struct VkInterface
     VkInstance instance;
     VkDevice device;
 } VkInterface;
+
 /*
    vkGetInstanceProcAddress is to get the function pointer that will always work with any device created from the instance passed in.
    However the functions returned may include dispatch logic(typically to account for extensions that may or may not be enabled for the device)
@@ -179,6 +180,7 @@ static inline const char* vkObjectType_ToString(VkObjectType input_value)
         return "Unhandled VkObjectType";
     }
 }
+
 static const char* VkResult_ToString(VkResult result)
 {
     switch (result)
@@ -264,7 +266,7 @@ struct vkewContext
     VkPhysicalDeviceFeatures deviceFeatures;
     VkPhysicalDeviceFeatures2 deviceFeatures2;
     VkPhysicalDeviceProperties deviceProperties;
-    
+
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
 
@@ -279,7 +281,7 @@ struct vkewContext
     int supportsExclusiveFullscreen;
     int validationLayerCount;
     size_t nodeIndex;
-    
+
     uint32_t current_buffer;
     uint32_t formatCount;
     uint32_t frame_index;
@@ -293,6 +295,7 @@ struct vkewContext
     uint32_t queueTransfertIndex;
     uint32_t queueComputeIndex;
 };
+
 static VKEWContext Vulkan;
 
 
@@ -300,7 +303,7 @@ VkResult vkewPrintResult(VkResult result, const char* file, int line)
 {
     if (result != VK_SUCCESS)
     {
-        LogMessage(VKEW_MESSAGE_VERBOSE,"%s(%d): %s", file, line, VkResult_ToString(result));
+        LogMessage(VKEW_MESSAGE_VERBOSE, "%s(%d): %s", file, line, VkResult_ToString(result));
     }
     return result;
 }
@@ -310,13 +313,14 @@ static PFN_vkVoidFunction vkewGetDeviceProcAddr(VkDevice device, const char* nam
 {
     return vkGetDeviceProcAddr(device, name);
 }
+
 static PFN_vkVoidFunction vkewGetInterfaceProcAddr(VkInterface value, const char* name)
 {
     void* ret = value.device ? vkewGetDeviceProcAddr(value.device, name) : vkGetInstanceProcAddr(value.instance, name);
     if (ret == NULL && value.device != VK_NULL_HANDLE)
     {
 #ifdef _DEBUG
-        LogMessage(VKEW_MESSAGE_VERBOSE,"<INFO> Entry point not found %s", name);
+        LogMessage(VKEW_MESSAGE_VERBOSE, "<INFO> Entry point not found %s", name);
 #endif
         return vkGetInstanceProcAddr(value.instance, name);
     }
@@ -507,6 +511,7 @@ static VkBool32 checkExtensionAvailabilityArray(const char* extension_name, cons
     }
     return VK_FALSE;
 }
+
 static VkBool32 checkExtensionAvailability(const char* extension_name,
                                            const VkExtensionProperties* available_extensions, int count)
 {
@@ -519,6 +524,7 @@ static VkBool32 checkExtensionAvailability(const char* extension_name,
     }
     return VK_FALSE;
 }
+
 VkResult vkewCheckExtensionAvailability(const char* extension_name)
 {
     return checkExtensionAvailability(extension_name, Vulkan.availableExtensions, Vulkan.availableExtensionCount);
@@ -545,6 +551,7 @@ PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT;
 PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTagEXT;
 #endif
 VkBool32 VKEW_EXT_debug_marker;
+
 static int vkewInit_VK_EXT_debug_marker(VkInterface value)
 {
     VKEW_GET_FUNCTION(vkCmdDebugMarkerBeginEXT);
@@ -578,7 +585,7 @@ static int vkewInit_VK_KHR_get_surface_capabilities2(VkInterface value)
 #endif
 
 // VK_KHR_dynamic_rendering is a preprocessor guard. Do not pass it to API calls.
-#ifdef  VK_KHR_dynamic_rendering 
+#ifdef  VK_KHR_dynamic_rendering
 VkBool32 VKEW_KHR_dynamic_rendering;
 #if defined VK_NO_PROTOTYPES
 PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
@@ -657,11 +664,12 @@ VkBool32 VKEW_KHR_maintenance4;
 PFN_vkGetDeviceBufferMemoryRequirementsKHR vkGetDeviceBufferMemoryRequirementsKHR;
 PFN_vkGetDeviceImageMemoryRequirementsKHR vkGetDeviceImageMemoryRequirementsKHR;
 PFN_vkGetDeviceImageSparseMemoryRequirementsKHR vkGetDeviceImageSparseMemoryRequirementsKHR;
+
 static int vkewInit_VK_KHR_maintenance4(VkInterface value)
 {
     VKEW_GET_FUNCTION(vkGetDeviceBufferMemoryRequirementsKHR);
     VKEW_GET_FUNCTION(vkGetDeviceImageMemoryRequirementsKHR);
-    VKEW_GET_FUNCTION(vkGetDeviceImageSparseMemoryRequirementsKHR);    
+    VKEW_GET_FUNCTION(vkGetDeviceImageSparseMemoryRequirementsKHR);
     return vkGetDeviceBufferMemoryRequirementsKHR != NULL &&
         vkGetDeviceImageMemoryRequirementsKHR != NULL &&
         vkGetDeviceImageSparseMemoryRequirementsKHR != NULL;
@@ -674,25 +682,27 @@ PFN_vkCreateRenderPass2KHR vkCreateRenderPass2KHR;
 PFN_vkCmdBeginRenderPass2KHR vkCmdBeginRenderPass2KHR;
 PFN_vkCmdNextSubpass2KHR vkCmdNextSubpass2KHR;
 PFN_vkCmdEndRenderPass2KHR vkCmdEndRenderPass2KHR;
+
 static int vkewInit_VK_KHR_create_renderpass2(VkInterface value)
 {
-	VKEW_GET_FUNCTION(vkCreateRenderPass2KHR);
-	VKEW_GET_FUNCTION(vkCmdBeginRenderPass2KHR);
-	VKEW_GET_FUNCTION(vkCmdNextSubpass2KHR);
-	VKEW_GET_FUNCTION(vkCmdEndRenderPass2KHR);
-	return vkCreateRenderPass2KHR != NULL &&
-		vkCmdBeginRenderPass2KHR != NULL &&
-		vkCmdNextSubpass2KHR != NULL &&
-		vkCmdEndRenderPass2KHR != NULL;
+    VKEW_GET_FUNCTION(vkCreateRenderPass2KHR);
+    VKEW_GET_FUNCTION(vkCmdBeginRenderPass2KHR);
+    VKEW_GET_FUNCTION(vkCmdNextSubpass2KHR);
+    VKEW_GET_FUNCTION(vkCmdEndRenderPass2KHR);
+    return vkCreateRenderPass2KHR != NULL &&
+        vkCmdBeginRenderPass2KHR != NULL &&
+        vkCmdNextSubpass2KHR != NULL &&
+        vkCmdEndRenderPass2KHR != NULL;
 }
 #endif
 
 #ifdef VK_KHR_maintenance5
 VkBool32 VKEW_KHR_maintenance5;
-PFN_vkCmdBindIndexBuffer2KHR             vkCmdBindIndexBuffer2KHR;
-PFN_vkGetRenderingAreaGranularityKHR     vkGetRenderingAreaGranularityKHR;
+PFN_vkCmdBindIndexBuffer2KHR vkCmdBindIndexBuffer2KHR;
+PFN_vkGetRenderingAreaGranularityKHR vkGetRenderingAreaGranularityKHR;
 PFN_vkGetDeviceImageSubresourceLayoutKHR vkGetDeviceImageSubresourceLayoutKHR;
-PFN_vkGetImageSubresourceLayout2KHR      vkGetImageSubresourceLayout2KHR;
+PFN_vkGetImageSubresourceLayout2KHR vkGetImageSubresourceLayout2KHR;
+
 static int vkewInit_VK_KHR_maintenance5(VkInterface value)
 {
     VKEW_GET_FUNCTION(vkCmdBindIndexBuffer2KHR);
@@ -723,6 +733,7 @@ PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceA
 PFN_vkCmdWriteAccelerationStructuresPropertiesKHR vkCmdWriteAccelerationStructuresPropertiesKHR;
 PFN_vkGetDeviceAccelerationStructureCompatibilityKHR vkGetDeviceAccelerationStructureCompatibilityKHR;
 PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
+
 static int vkewInit_VK_KHR_acceleration_structure(VkInterface value)
 {
     // Extract function pointers
@@ -765,14 +776,15 @@ VkBool32 VKEW_KHR_buffer_device_address;
 PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 PFN_vkGetBufferOpaqueCaptureAddressKHR vkGetBufferOpaqueCaptureAddressKHR;
 PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR vkGetDeviceMemoryOpaqueCaptureAddressKHR;
+
 static int vkewInit_VK_KHR_buffer_device_address(VkInterface value)
 {
-	VKEW_GET_FUNCTION(vkGetBufferDeviceAddressKHR);
-	VKEW_GET_FUNCTION(vkGetBufferOpaqueCaptureAddressKHR);
-	VKEW_GET_FUNCTION(vkGetDeviceMemoryOpaqueCaptureAddressKHR);
-	return vkGetBufferDeviceAddressKHR != NULL &&
-		vkGetBufferOpaqueCaptureAddressKHR != NULL &&
-		vkGetDeviceMemoryOpaqueCaptureAddressKHR != NULL;
+    VKEW_GET_FUNCTION(vkGetBufferDeviceAddressKHR);
+    VKEW_GET_FUNCTION(vkGetBufferOpaqueCaptureAddressKHR);
+    VKEW_GET_FUNCTION(vkGetDeviceMemoryOpaqueCaptureAddressKHR);
+    return vkGetBufferDeviceAddressKHR != NULL &&
+        vkGetBufferOpaqueCaptureAddressKHR != NULL &&
+        vkGetDeviceMemoryOpaqueCaptureAddressKHR != NULL;
 }
 #endif
 #ifdef VK_KHR_deferred_host_operations
@@ -782,18 +794,19 @@ PFN_vkDestroyDeferredOperationKHR vkDestroyDeferredOperationKHR;
 PFN_vkGetDeferredOperationMaxConcurrencyKHR vkGetDeferredOperationMaxConcurrencyKHR;
 PFN_vkGetDeferredOperationResultKHR vkGetDeferredOperationResultKHR;
 PFN_vkDeferredOperationJoinKHR vkDeferredOperationJoinKHR;
+
 static int vkewInit_VK_KHR_deferred_host_operations(VkInterface value)
 {
-	VKEW_GET_FUNCTION(vkCreateDeferredOperationKHR);
-	VKEW_GET_FUNCTION(vkDestroyDeferredOperationKHR);
-	VKEW_GET_FUNCTION(vkGetDeferredOperationMaxConcurrencyKHR);
-	VKEW_GET_FUNCTION(vkGetDeferredOperationResultKHR);
-	VKEW_GET_FUNCTION(vkDeferredOperationJoinKHR);
-	return vkCreateDeferredOperationKHR != NULL &&
-		vkDestroyDeferredOperationKHR != NULL &&
-		vkGetDeferredOperationMaxConcurrencyKHR != NULL &&
-		vkGetDeferredOperationResultKHR != NULL &&
-		vkDeferredOperationJoinKHR != NULL;
+    VKEW_GET_FUNCTION(vkCreateDeferredOperationKHR);
+    VKEW_GET_FUNCTION(vkDestroyDeferredOperationKHR);
+    VKEW_GET_FUNCTION(vkGetDeferredOperationMaxConcurrencyKHR);
+    VKEW_GET_FUNCTION(vkGetDeferredOperationResultKHR);
+    VKEW_GET_FUNCTION(vkDeferredOperationJoinKHR);
+    return vkCreateDeferredOperationKHR != NULL &&
+        vkDestroyDeferredOperationKHR != NULL &&
+        vkGetDeferredOperationMaxConcurrencyKHR != NULL &&
+        vkGetDeferredOperationResultKHR != NULL &&
+        vkDeferredOperationJoinKHR != NULL;
 }
 #endif
 #ifdef VK_EXT_descriptor_indexing
@@ -809,7 +822,7 @@ VkBool32 VKEW_VERSION_1_4;
 #ifdef VK_KHR_shader_float_controls
 VkBool32 VKEW_KHR_shader_float_controls;
 #endif
-#ifdef VK_KHR_pipeline_library 
+#ifdef VK_KHR_pipeline_library
 VkBool32 VKEW_KHR_pipeline_library;
 #endif
 #ifdef VK_KHR_ray_query
@@ -817,42 +830,44 @@ VkBool32 VKEW_KHR_ray_query;
 PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
 PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirectEXT;
 PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCountEXT;
+
 static int vkewInit_VK_KHR_ray_query(VkInterface value)
 {
-	VKEW_GET_FUNCTION(vkCmdDrawMeshTasksEXT);
-	VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirectEXT);
-	VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirectCountEXT);
-	return vkCmdDrawMeshTasksEXT != NULL &&
-		vkCmdDrawMeshTasksIndirectEXT != NULL &&
-		vkCmdDrawMeshTasksIndirectCountEXT != NULL;
+    VKEW_GET_FUNCTION(vkCmdDrawMeshTasksEXT);
+    VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirectEXT);
+    VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirectCountEXT);
+    return vkCmdDrawMeshTasksEXT != NULL &&
+        vkCmdDrawMeshTasksIndirectEXT != NULL &&
+        vkCmdDrawMeshTasksIndirectCountEXT != NULL;
 }
 #endif
 #ifdef VK_KHR_ray_tracing_pipeline
 VkBool32 VKEW_KHR_ray_tracing_pipeline;
-PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRaysKHR = 0;
-PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelinesKHR = 0;
-PFN_vkGetRayTracingShaderGroupHandlesKHR              vkGetRayTracingShaderGroupHandlesKHR = 0;
+PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR = 0;
+PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR = 0;
+PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR = 0;
 PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR vkGetRayTracingCaptureReplayShaderGroupHandlesKHR = 0;
-PFN_vkCmdTraceRaysIndirectKHR                         vkCmdTraceRaysIndirectKHR = 0;
-PFN_vkGetRayTracingShaderGroupStackSizeKHR            vkGetRayTracingShaderGroupStackSizeKHR = 0;
-PFN_vkCmdSetRayTracingPipelineStackSizeKHR            vkCmdSetRayTracingPipelineStackSizeKHR = 0;
+PFN_vkCmdTraceRaysIndirectKHR vkCmdTraceRaysIndirectKHR = 0;
+PFN_vkGetRayTracingShaderGroupStackSizeKHR vkGetRayTracingShaderGroupStackSizeKHR = 0;
+PFN_vkCmdSetRayTracingPipelineStackSizeKHR vkCmdSetRayTracingPipelineStackSizeKHR = 0;
+
 static int vkewInit_VK_KHR_ray_tracing_pipeline(VkInterface value)
 {
-	// Extract function pointers
-	VKEW_GET_FUNCTION(vkCmdTraceRaysKHR);
-	VKEW_GET_FUNCTION(vkCreateRayTracingPipelinesKHR);
-	VKEW_GET_FUNCTION(vkGetRayTracingShaderGroupHandlesKHR);
-	VKEW_GET_FUNCTION(vkGetRayTracingCaptureReplayShaderGroupHandlesKHR);
-	VKEW_GET_FUNCTION(vkCmdTraceRaysIndirectKHR);
-	VKEW_GET_FUNCTION(vkGetRayTracingShaderGroupStackSizeKHR);
-	VKEW_GET_FUNCTION(vkCmdSetRayTracingPipelineStackSizeKHR);
-	return vkCmdTraceRaysKHR != NULL &&
-		vkCreateRayTracingPipelinesKHR != NULL &&
-		vkGetRayTracingShaderGroupHandlesKHR != NULL &&
-		vkGetRayTracingCaptureReplayShaderGroupHandlesKHR != NULL &&
-		vkCmdTraceRaysIndirectKHR != NULL &&
-		vkGetRayTracingShaderGroupStackSizeKHR != NULL &&
-		vkCmdSetRayTracingPipelineStackSizeKHR != NULL;
+    // Extract function pointers
+    VKEW_GET_FUNCTION(vkCmdTraceRaysKHR);
+    VKEW_GET_FUNCTION(vkCreateRayTracingPipelinesKHR);
+    VKEW_GET_FUNCTION(vkGetRayTracingShaderGroupHandlesKHR);
+    VKEW_GET_FUNCTION(vkGetRayTracingCaptureReplayShaderGroupHandlesKHR);
+    VKEW_GET_FUNCTION(vkCmdTraceRaysIndirectKHR);
+    VKEW_GET_FUNCTION(vkGetRayTracingShaderGroupStackSizeKHR);
+    VKEW_GET_FUNCTION(vkCmdSetRayTracingPipelineStackSizeKHR);
+    return vkCmdTraceRaysKHR != NULL &&
+        vkCreateRayTracingPipelinesKHR != NULL &&
+        vkGetRayTracingShaderGroupHandlesKHR != NULL &&
+        vkGetRayTracingCaptureReplayShaderGroupHandlesKHR != NULL &&
+        vkCmdTraceRaysIndirectKHR != NULL &&
+        vkGetRayTracingShaderGroupStackSizeKHR != NULL &&
+        vkCmdSetRayTracingPipelineStackSizeKHR != NULL;
 }
 #endif
 #ifdef VK_EXT_full_screen_exclusive
@@ -932,6 +947,7 @@ PFN_vkGetDisplayPlaneCapabilitiesKHR vkGetDisplayPlaneCapabilitiesKHR;
 PFN_vkCreateDisplayPlaneSurfaceKHR vkCreateDisplayPlaneSurfaceKHR;
 #endif
 VkBool32 VKEW_KHR_display;
+
 static int vkewInit_VK_KHR_display(VkInterface value)
 {
     VKEW_GET_FUNCTION(vkGetPhysicalDeviceDisplayPropertiesKHR);
@@ -1017,15 +1033,15 @@ static int vkewInit_VK_KHR_win32_surface(VkInterface value)
 #endif
 #ifdef VK_KHR_driver_properties
 VkBool32 VKEW_KHR_driver_properties;
-    #if defined VK_NO_PROTOTYPES
-    PFN_vkGetPhysicalDeviceFeatures2KHR                    vkGetPhysicalDeviceFeatures2KHR;
-    PFN_vkGetPhysicalDeviceProperties2KHR                  vkGetPhysicalDeviceProperties2KHR;
-    PFN_vkGetPhysicalDeviceFormatProperties2KHR            vkGetPhysicalDeviceFormatProperties2KHR;
-    PFN_vkGetPhysicalDeviceImageFormatProperties2KHR       vkGetPhysicalDeviceImageFormatProperties2KHR;
-    PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR       vkGetPhysicalDeviceQueueFamilyProperties2KHR;
-    PFN_vkGetPhysicalDeviceMemoryProperties2KHR            vkGetPhysicalDeviceMemoryProperties2KHR;
-    PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
-    #endif
+#if defined VK_NO_PROTOTYPES
+PFN_vkGetPhysicalDeviceFeatures2KHR vkGetPhysicalDeviceFeatures2KHR;
+PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR;
+PFN_vkGetPhysicalDeviceFormatProperties2KHR vkGetPhysicalDeviceFormatProperties2KHR;
+PFN_vkGetPhysicalDeviceImageFormatProperties2KHR vkGetPhysicalDeviceImageFormatProperties2KHR;
+PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR vkGetPhysicalDeviceQueueFamilyProperties2KHR;
+PFN_vkGetPhysicalDeviceMemoryProperties2KHR vkGetPhysicalDeviceMemoryProperties2KHR;
+PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
+#endif
 static int vkewInit_VK_KHR_driver_properties(VkInterface value)
 {
 #if defined VK_NO_PROTOTYPES
@@ -1093,7 +1109,7 @@ int vkewInterfaceLevelInit(VkInterface value)
     vkewInit_VK_KHR_push_descriptor(value);
 #endif
 #ifdef VK_KHR_dynamic_rendering
-	vkewInit_VK_KHR_dynamic_rendering(value);
+    vkewInit_VK_KHR_dynamic_rendering(value);
 #endif
 #ifdef VK_EXT_full_screen_exclusive
     vkewInit_VK_EXT_full_screen_exclusive(value);
@@ -1102,7 +1118,7 @@ int vkewInterfaceLevelInit(VkInterface value)
     vkewInit_VK_KHR_maintenance4(value);
 #endif
 #ifdef VK_KHR_create_renderpass2
-	vkewInit_VK_KHR_create_renderpass2(value);
+    vkewInit_VK_KHR_create_renderpass2(value);
 #endif
 #ifdef VK_KHR_maintenance5
     vkewInit_VK_KHR_maintenance5(value);
@@ -1117,16 +1133,16 @@ int vkewInterfaceLevelInit(VkInterface value)
     vkewInit_VK_KHR_deferred_host_operations(value);
 #endif
 #ifdef VK_KHR_acceleration_structure
-	 vkewInit_VK_KHR_acceleration_structure(value);
+    vkewInit_VK_KHR_acceleration_structure(value);
 #endif
 #ifdef VK_KHR_ray_tracing_pipeline
-	 vkewInit_VK_KHR_ray_tracing_pipeline(value);
+    vkewInit_VK_KHR_ray_tracing_pipeline(value);
 #endif
 #ifdef VK_KHR_ray_query
-	 vkewInit_VK_KHR_ray_query(value);
+    vkewInit_VK_KHR_ray_query(value);
 #endif
 #ifdef VK_KHR_get_physical_device_properties2
-	 vkewInit_VK_KHR_driver_properties(value);
+    vkewInit_VK_KHR_driver_properties(value);
 #endif
     VKEW_GET_FUNCTION(vkAllocateCommandBuffers);
     VKEW_GET_FUNCTION(vkAllocateDescriptorSets);
@@ -1248,7 +1264,6 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkCmdEndRenderPass2);
 
 
-
 #ifdef VK_EXT_full_screen_exclusive
 #endif
 #ifdef VK_KHR_android_surface
@@ -1274,16 +1289,18 @@ int vkewInterfaceLevelInit(VkInterface value)
     vkewInit_VK_KHR_synchronization2(value);
 #endif
 #ifdef VK_KHR_get_physical_device_properties2
-	vkewInit_VK_KHR_driver_properties(value);
+    vkewInit_VK_KHR_driver_properties(value);
 #endif
     return VK_FALSE;
 }
+
 VkBool32 VKEW_KHR_timeline_semaphore;
 VkBool32 VKEW_KHR_shader_clock;
 VkBool32 VKEW_KHR_shader_float16_int8;
 VkBool32 VKEW_EXT_memory_priority;
 VkBool32 VKEW_EXT_pipeline_creation_cache_control;
 VkBool32 VKEW_EXT_subgroup_size_control;
+
 int vkewSupportsFullscreenExclusive(void)
 {
 #ifdef VK_EXT_full_screen_exclusive
@@ -1292,6 +1309,7 @@ int vkewSupportsFullscreenExclusive(void)
 	return 0;
 #endif
 }
+
 void vkewDestroy(void)
 {
     if (Vulkan.i.device != VK_NULL_HANDLE)
@@ -1301,7 +1319,7 @@ void vkewDestroy(void)
         Vulkan.i.device = VK_NULL_HANDLE;
     }
     if (Vulkan.i.instance != VK_NULL_HANDLE)
-    {    
+    {
 #ifdef VK_EXT_debug_utils
         if (Vulkan.debugMessenger != VK_NULL_HANDLE)
         {
@@ -1319,6 +1337,7 @@ void vkewDestroy(void)
 #endif
     memset(&Vulkan, 0, sizeof(Vulkan));
 }
+
 VkInstance vkewGetInstance()
 {
     return Vulkan.i.instance;
@@ -1437,7 +1456,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsCallback(
             l_strncat(message, messageLen, tmp_message);
         }
     }
-    LogMessage(VKEW_MESSAGE_VERBOSE,"%s\n", message);
+    LogMessage(VKEW_MESSAGE_VERBOSE, "%s\n", message);
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
         if (Vulkan.settings.pfnOnError)
@@ -1448,6 +1467,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsCallback(
     // Don't bail out, but keep going.
     return VK_FALSE;
 }
+
 static VkBool32 _vkewCheckLayerAvailabilty(const uint32_t check_count, const char** check_names,
                                            const uint32_t layer_count, const VkLayerProperties* layers)
 {
@@ -1464,12 +1484,13 @@ static VkBool32 _vkewCheckLayerAvailabilty(const uint32_t check_count, const cha
         }
         if (!found)
         {
-            LogMessage(VKEW_MESSAGE_VERBOSE,"<WARNING> Layer '%s' not found", check_names[i]);
+            LogMessage(VKEW_MESSAGE_VERBOSE, "<WARNING> Layer '%s' not found", check_names[i]);
             return 0;
         }
     }
     return 1;
 }
+
 static int InitValidationLayers(int enableValidation)
 {
     if (!enableValidation)
@@ -1532,6 +1553,7 @@ static int InitValidationLayers(int enableValidation)
     }
     return 0;
 }
+
 static void InitExtensionsLayers(int enableValidation)
 {
     int platformSurfaceExtFound = 0;
@@ -1544,11 +1566,9 @@ static void InitExtensionsLayers(int enableValidation)
         VkExtensionProperties* instance_extensions = malloc(sizeof(VkExtensionProperties) * instance_extension_count);
         err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, instance_extensions);
 
-        
 
         for (int32_t i = 0; i < (int32_t)instance_extension_count; i++)
-        {            
-
+        {
             if (!strcmp(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, instance_extensions[i].extensionName))
             {
                 AddExtensionLayer(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
@@ -1625,7 +1645,7 @@ static void InitExtensionsLayers(int enableValidation)
             if (!strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, instance_extensions[i].extensionName))
             {
 #ifndef PROFILE
-				if (enableValidation)
+                if (enableValidation)
 #endif
                 {
                     AddExtensionLayer(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1636,20 +1656,22 @@ static void InitExtensionsLayers(int enableValidation)
     }
     if (!surfaceExtFound)
     {
-        LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_SURFACE_EXTENSION_NAME
-                       " extension.\n\n"
-                       "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
-                       "Please look at the Getting Started guide for additional information.\n",
-                       "vkCreateInstance Failure");
+        LogMessage(VKEW_MESSAGE_VERBOSE,
+                   "vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_SURFACE_EXTENSION_NAME
+                   " extension.\n\n"
+                   "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
+                   "Please look at the Getting Started guide for additional information.\n",
+                   "vkCreateInstance Failure");
     }
     if (!platformSurfaceExtFound)
     {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-        LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_WIN32_SURFACE_EXTENSION_NAME
-                       " extension.\n\n"
-                       "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
-                       "Please look at the Getting Started guide for additional information.\n",
-                       "vkCreateInstance Failure");
+        LogMessage(VKEW_MESSAGE_VERBOSE,
+                   "vkEnumerateInstanceExtensionProperties failed to find the " VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+                   " extension.\n\n"
+                   "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
+                   "Please look at the Getting Started guide for additional information.\n",
+                   "vkCreateInstance Failure");
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
 		LogMessage(VKEW_MESSAGE_VERBOSE,"vkEnumerateInstanceExtensionProperties failed to find the " VK_MVK_IOS_SURFACE_EXTENSION_NAME
 			" extension.\n\n"
@@ -1696,6 +1718,7 @@ static void InitExtensionsLayers(int enableValidation)
 #endif
     }
 }
+
 static VkDebugUtilsMessengerCreateInfoEXT s_CreateInfoUtilMessenger;
 #ifdef USE_EXT_debug_report
 static VkDebugReportCallbackCreateInfoEXT s_CreateInfoDebugReport;
@@ -1728,16 +1751,17 @@ static void ActivateDebugReport()
         case VK_SUCCESS:
             break;
         case VK_ERROR_OUT_OF_HOST_MEMORY:
-            LogMessage(VKEW_MESSAGE_VERBOSE,"CreateDebugUtilsMessengerEXT: out of host memory");
+            LogMessage(VKEW_MESSAGE_VERBOSE, "CreateDebugUtilsMessengerEXT: out of host memory");
             break;
         default:
-            LogMessage(VKEW_MESSAGE_VERBOSE,"CreateDebugUtilsMessengerEXT: unknown failure");
+            LogMessage(VKEW_MESSAGE_VERBOSE, "CreateDebugUtilsMessengerEXT: unknown failure");
             break;
         }
     }
 #endif
 #endif
 }
+
 static void InitDebugReport()
 {
     // If requested, we enable the default validation layers for debugging
@@ -1763,6 +1787,7 @@ static void InitDebugReport()
 #endif
     }
 }
+
 int vkewInit(const VKEWSettings* lpArgs)
 {
     VkResult err;
@@ -1831,24 +1856,24 @@ int vkewInit(const VKEWSettings* lpArgs)
     if (err == VK_ERROR_INCOMPATIBLE_DRIVER)
     {
         LogMessage(VKEW_MESSAGE_VERBOSE,
-            "Cannot find a compatible Vulkan installable client driver (ICD).\n\n"
-            "Please look at the Getting Started guide for additional information.\n",
-            "vkCreateInstance Failure");
+                   "Cannot find a compatible Vulkan installable client driver (ICD).\n\n"
+                   "Please look at the Getting Started guide for additional information.\n",
+                   "vkCreateInstance Failure");
     }
     else if (err == VK_ERROR_EXTENSION_NOT_PRESENT)
     {
         LogMessage(VKEW_MESSAGE_VERBOSE,
-            "Cannot find a specified extension library.\n"
-            "Make sure your layers path is set appropriately.\n",
-            "vkCreateInstance Failure");
+                   "Cannot find a specified extension library.\n"
+                   "Make sure your layers path is set appropriately.\n",
+                   "vkCreateInstance Failure");
     }
     else if (err)
     {
         LogMessage(VKEW_MESSAGE_VERBOSE,
-            "vkCreateInstance failed.\n\n"
-            "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
-            "Please look at the Getting Started guide for additional information.\n",
-            "vkCreateInstance Failure");
+                   "vkCreateInstance failed.\n\n"
+                   "Do you have a compatible Vulkan installable client driver (ICD) installed?\n"
+                   "Please look at the Getting Started guide for additional information.\n",
+                   "vkCreateInstance Failure");
     }
     if (err == VK_SUCCESS)
     {
@@ -1860,6 +1885,7 @@ int vkewInit(const VKEWSettings* lpArgs)
     }
     return err;
 }
+
 VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device)
 {
     uint32_t extensions_count = 0;
@@ -1890,8 +1916,10 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
     VkBool32 errataExtRobutness2 = Vulkan.deviceProperties.vendorID == VENDOR_ID_NVIDIA;
     VKEW_KHR_swapchain = checkExtensionAvailability(
         VK_KHR_SWAPCHAIN_EXTENSION_NAME, available_extensions, extensions_count);
-    VKEW_EXT_robustness2 = errataExtRobutness2 ? VK_FALSE : checkExtensionAvailability(
-        VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_EXT_robustness2 = errataExtRobutness2
+                               ? VK_FALSE
+                               : checkExtensionAvailability(
+                                   VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_get_physical_device_properties2 = checkExtensionAvailability(
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, available_extensions, extensions_count);
 #ifdef VK_EXT_full_screen_exclusive
@@ -1906,8 +1934,8 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_dynamic_rendering = checkExtensionAvailability(
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, available_extensions, extensions_count);
-	VKEW_KHR_create_renderpass2 = checkExtensionAvailability(
-		VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_create_renderpass2 = checkExtensionAvailability(
+        VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance1 = checkExtensionAvailability(
         VK_KHR_MAINTENANCE1_EXTENSION_NAME, available_extensions, extensions_count);
     VKEW_KHR_maintenance2 = checkExtensionAvailability(
@@ -1944,7 +1972,8 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
         VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME, available_extensions, extensions_count);
     if (VKEW_KHR_acceleration_structure)
     {
-        Vulkan.accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+        Vulkan.accelerationStructureFeatures.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
         VkPhysicalDeviceFeatures2 deviceFeatures2;
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         deviceFeatures2.pNext = &Vulkan.accelerationStructureFeatures;
@@ -1952,7 +1981,8 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
     }
     if (VKEW_KHR_ray_tracing_pipeline)
     {
-        Vulkan.rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+        Vulkan.rayTracingPipelineProperties.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
         VkPhysicalDeviceProperties2 deviceProperties2;
         deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         deviceProperties2.pNext = &Vulkan.rayTracingPipelineProperties;
@@ -1962,15 +1992,16 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
     l_free(available_extensions);
     return VK_TRUE;
 }
+
 VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
-	                                       VkSurfaceKHR presentationSurface,
+                                           VkSurfaceKHR presentationSurface,
                                            uint32_t* selected_graphics_queue_family_index,
                                            uint32_t* selected_present_queue_family_index,
                                            uint32_t* selected_transfer_queue_family_index,
                                            uint32_t* selected_compute_queue_family_index
-                                            )
+)
 {
-	vkewEnumerateDeviceExtensionProperties(physical_device);
+    vkewEnumerateDeviceExtensionProperties(physical_device);
     uint32_t queue_families_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, NULL);
     if (queue_families_count == 0)
@@ -2046,6 +2077,7 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
     *selected_present_queue_family_index = present_queue_family_index;
     return VK_TRUE;
 }
+
 /// @brief 
 /// @param  
 /// @return 
@@ -2070,11 +2102,11 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
     for (uint32_t i = 0; i < num_devices; ++i)
     {
         if (vkewCheckPhysicalDeviceProperties(physical_devices[i],
-            aSurface,
-            &selected_graphics_queue_family_index,
-            &selected_present_queue_family_index,
-            &selected_transfert_queue_family_index,
-            &selected_compute_queue_family_index))
+                                              aSurface,
+                                              &selected_graphics_queue_family_index,
+                                              &selected_present_queue_family_index,
+                                              &selected_transfert_queue_family_index,
+                                              &selected_compute_queue_family_index))
         {
             if (aDeviceIndex == -1 || aDeviceIndex == i)
             {
@@ -2090,18 +2122,24 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
     {
         return VK_ERROR_INITIALIZATION_FAILED;
     }
-    return vkewCreateDeviceAt(Vulkan.physicalDevice, selected_graphics_queue_family_index, selected_present_queue_family_index, selected_transfert_queue_family_index, selected_compute_queue_family_index);
+    return vkewCreateDeviceAt(Vulkan.physicalDevice, selected_graphics_queue_family_index,
+                              selected_present_queue_family_index, selected_transfert_queue_family_index,
+                              selected_compute_queue_family_index);
 }
- /// @brief 
- /// @param aDevice 
- /// @param selected_graphics_queue_family_index 
- /// @param selected_present_queue_family_index 
- /// @param selected_transfert_queue_family_index 
- /// @return 
- VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index, uint32_t selected_present_queue_family_index, uint32_t selected_transfert_queue_family_index, uint32_t selected_compute_queue_family_index)
- {
+
+/// @brief 
+/// @param aDevice 
+/// @param selected_graphics_queue_family_index 
+/// @param selected_present_queue_family_index 
+/// @param selected_transfert_queue_family_index 
+/// @return 
+VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index,
+                            uint32_t selected_present_queue_family_index,
+                            uint32_t selected_transfert_queue_family_index,
+                            uint32_t selected_compute_queue_family_index)
+{
     VkResult err = vkEnumerateDeviceExtensionProperties(Vulkan.physicalDevice, NULL, &Vulkan.availableExtensionCount,
-        NULL);
+                                                        NULL);
     if (Vulkan.availableExtensionCount > 0)
     {
         if (Vulkan.availableExtensions != NULL)
@@ -2110,11 +2148,11 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
         }
         Vulkan.availableExtensions = malloc(sizeof(VkExtensionProperties) * Vulkan.availableExtensionCount);
         err = vkEnumerateDeviceExtensionProperties(Vulkan.physicalDevice, NULL, &Vulkan.availableExtensionCount,
-            Vulkan.availableExtensions);
+                                                   Vulkan.availableExtensions);
     }
     // All the extensions
     int enabledExtensionCount = 0;
-    const char* ppEnabledExtensionNames[128] = { NULL };
+    const char* ppEnabledExtensionNames[128] = {NULL};
     VkPhysicalDeviceFeatures* pEnabledFeatures = NULL;
     if (VKEW_KHR_swapchain)
     {
@@ -2161,20 +2199,20 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
     }
     if (VKEW_KHR_maintenance5)
     {
-        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;        
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME;
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_5_EXTENSION_NAME;
     }
     if (VKEW_KHR_create_renderpass2)
     {
-		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME;
     }
     if (VKEW_KHR_maintenance5 || VKEW_KHR_dynamic_rendering)
     {
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME;
     }
 
-    
+
     if (VKEW_KHR_maintenance4)
     {
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_MAINTENANCE_4_EXTENSION_NAME;
@@ -2230,7 +2268,7 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
         ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME;
     }
     VkDeviceQueueCreateInfo queue_create_infos[3];
-    float queue_priorities[] = { 1.0f };
+    float queue_priorities[] = {1.0f};
     int queueCount = 1;
     VkDeviceQueueCreateInfo qci0 = {
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, // VkStructureType              sType
@@ -2298,11 +2336,11 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
             NULL
         };
 
-		VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
-			NULL,
-			VK_TRUE // Enable dynamic rendering features
-		};
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+            NULL,
+            VK_TRUE // Enable dynamic rendering features
+        };
         features2.features.samplerAnisotropy = VK_TRUE;
         // Chain pNext properly
         if (VKEW_EXT_robustness2)
@@ -2326,10 +2364,8 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
             else
                 device_create_info.pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
             lastPNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+        }
 
-        };
-        
-        
 
         // Create the Vulkan logical device
         VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, NULL, &Vulkan.i.device));
@@ -2356,95 +2392,67 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
     Vulkan.queueComputeIndex = Vulkan.computeQueueFamilyIndex;
     vkGetPhysicalDeviceProperties(Vulkan.physicalDevice, &Vulkan.deviceProperties);
     vkGetPhysicalDeviceFeatures(Vulkan.physicalDevice, &Vulkan.deviceFeatures);
-    uint32_t apiVersion = Vulkan.deviceProperties.apiVersion;    
+    uint32_t apiVersion = Vulkan.deviceProperties.apiVersion;
     uint32_t major = VK_VERSION_MAJOR(apiVersion);
-    uint32_t minor = VK_VERSION_MINOR(apiVersion);    
+    uint32_t minor = VK_VERSION_MINOR(apiVersion);
     VKEW_VERSION_1_1 = (major >= 1 && minor >= 1) || major > 1;
     VKEW_VERSION_1_2 = (major >= 1 && minor >= 2) || major > 1;
     VKEW_VERSION_1_3 = (major >= 1 && minor >= 3) || major > 1;
     VKEW_VERSION_1_4 = (major >= 1 && minor >= 4) || major > 1;
     return VK_SUCCESS;
 }
+
 void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f)
 {
     *p = Vulkan.deviceProperties;
     *f = Vulkan.deviceFeatures;
 }
-void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePropertiesKHR* p, VkPhysicalDeviceAccelerationStructureFeaturesKHR * f)
+
+void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePropertiesKHR* p,
+                                            VkPhysicalDeviceAccelerationStructureFeaturesKHR* f)
 {
     *p = Vulkan.rayTracingPipelineProperties;
     *f = Vulkan.accelerationStructureFeatures;
 }
-
-
-/// <summary>
-/// Get Graphics Queue Family Index
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
 uint32_t vkewGetGraphicsQueueFamilyIndex(void)
 {
     return Vulkan.graphicsQueueFamilyIndex;
 }
-/// <summary>
-/// Get Graphics Queue Family Index
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
+
 uint32_t vkewGetComputeQueueFamilyIndex(void)
 {
-    return Vulkan.computeQueueFamilyIndex == UINT32_MAX ? Vulkan.graphicsQueueFamilyIndex : Vulkan.computeQueueFamilyIndex;
+    return Vulkan.computeQueueFamilyIndex == UINT32_MAX
+               ? Vulkan.graphicsQueueFamilyIndex
+               : Vulkan.computeQueueFamilyIndex;
 }
-/// <summary>
-/// Get Transfert queue family index
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
+
 uint32_t vkewGetTransfertQueueFamilyIndex(void)
 {
     return Vulkan.transfertQueueFamilyIndex;
 }
-/// <summary>
-/// Get device
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
+
 VkDevice vkewGetDevice(void)
 {
     return Vulkan.i.device;
 }
 
-/// <summary>
-/// Get physical device
-/// </summary>
-/// <returns></returns>
 VkPhysicalDevice vkewGetPhysicalDevice()
 {
     return Vulkan.physicalDevice;
 }
-/// <summary>
-/// Get Queue Node Index
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
+
 int vkewGetQueueNodeIndex(void)
 {
     return Vulkan.queueNodeIndex;
 }
-/// <summary>
-/// Get Transfert queue index
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
+
+
 int vkewGetQueueTransfertIndex(void)
 {
     return Vulkan.queueTransfertIndex;
 }
-/// <summary>
-/// Get Transfert queue index
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
+
+
 int vkewGetComputeIndex(void)
 {
     return Vulkan.queueComputeIndex;

@@ -59,8 +59,10 @@ uint32_t SwapChain::GetSwapChainNumImages(const VkSurfaceCapabilitiesKHR* surfac
     }
     return image_count;
 }
-VkSurfaceFormatKHR SwapChain::GetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count, VkFormat colorFormat,
-    VkColorSpaceKHR colorSpace)
+
+VkSurfaceFormatKHR SwapChain::GetSwapChainFormat(const VkSurfaceFormatKHR* surface_formats, int count,
+                                                 VkFormat colorFormat,
+                                                 VkColorSpaceKHR colorSpace)
 {
     // If the list contains only one entry with undefined format
     // it means that there are no preferred surface formats and any can be chosen
@@ -86,13 +88,14 @@ VkSurfaceFormatKHR SwapChain::GetSwapChainFormat(const VkSurfaceFormatKHR* surfa
     // Return the first format from the list
     return surface_formats[0];
 }
+
 VkExtent2D SwapChain::GetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface_capabilities)
 {
     // Special value of surface extent is width == height == -1
     // If this is so we define the size by ourselves but it must fit within defined confines
     if (surface_capabilities->currentExtent.width == -1)
     {
-        VkExtent2D swap_chain_extent = { 640, 480 };
+        VkExtent2D swap_chain_extent = {640, 480};
         if (swap_chain_extent.width < surface_capabilities->minImageExtent.width)
         {
             swap_chain_extent.width = surface_capabilities->minImageExtent.width;
@@ -114,6 +117,7 @@ VkExtent2D SwapChain::GetSwapChainExtent(const VkSurfaceCapabilitiesKHR* surface
     // Most of the cases we define size of the swap_chain images equal to current window's size
     return surface_capabilities->currentExtent;
 }
+
 VkImageUsageFlags SwapChain::GetSwapChainUsageFlags(const VkSurfaceCapabilitiesKHR* surface_capabilities)
 {
     if (surface_capabilities->supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
@@ -122,6 +126,7 @@ VkImageUsageFlags SwapChain::GetSwapChainUsageFlags(const VkSurfaceCapabilitiesK
     }
     return -1;
 }
+
 VkSurfaceTransformFlagBitsKHR SwapChain::GetSwapChainTransform(const VkSurfaceCapabilitiesKHR* surface_capabilities)
 {
     if (surface_capabilities->supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
@@ -130,6 +135,7 @@ VkSurfaceTransformFlagBitsKHR SwapChain::GetSwapChainTransform(const VkSurfaceCa
     }
     return surface_capabilities->currentTransform;
 }
+
 VkPresentModeKHR SwapChain::GetSwapChainPresentMode(const VkPresentModeKHR* present_modes, int count, int vsync)
 {
     // FIFO present mode is always available
@@ -151,12 +157,13 @@ VkPresentModeKHR SwapChain::GetSwapChainPresentMode(const VkPresentModeKHR* pres
             if (VK_PRESENT_MODE_FIFO_RELAXED_KHR == present_modes[i])
                 return present_modes[i];
     }
-    // FIFO means first-in–first-out — it will queue images you present and swap them one by one in the order given, during the VBLANK interval.
+    // FIFO means first-inï¿½first-out ï¿½ it will queue images you present and swap them one by one in the order given, during the VBLANK interval.
     for (i = 0; i < count; i++)
         if (VK_PRESENT_MODE_FIFO_KHR == present_modes[i])
             return present_modes[i];
     return present_modes[0]; // We need something  ...
 }
+
 std::shared_ptr<SwapChain> SwapChain::Create(
     void* platformWindow,
     VkPhysicalDevice physicalDevice,
@@ -184,13 +191,13 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     }
     uint32_t formats_count;
     if ((VK_CHECK(
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, presentationSurface->Value, &formats_count, NULL
-        )) != VK_SUCCESS) ||
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, presentationSurface->Value, &formats_count, NULL
+            )) != VK_SUCCESS) ||
         (formats_count == 0))
     {
         return nullptr;
     }
-    VkSurfaceFormatKHR* surface_formats = new VkSurfaceFormatKHR[formats_count];
+    auto surface_formats = new VkSurfaceFormatKHR[formats_count];
     if (VK_CHECK(
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, presentationSurface->Value, &formats_count, &
             surface_formats[0])) != VK_SUCCESS)
@@ -199,13 +206,13 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     }
     uint32_t present_modes_count;
     if ((VK_CHECK(
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, presentationSurface->Value, &
-            present_modes_count, NULL)) != VK_SUCCESS) ||
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, presentationSurface->Value, &
+                present_modes_count, NULL)) != VK_SUCCESS) ||
         (present_modes_count == 0))
     {
         return nullptr;
     }
-    VkPresentModeKHR* present_modes = new VkPresentModeKHR[present_modes_count];
+    auto present_modes = new VkPresentModeKHR[present_modes_count];
     if (VK_CHECK(
         vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, presentationSurface->Value, &
             present_modes_count, &present_modes[0])) != VK_SUCCESS)
@@ -222,11 +229,11 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     VkSurfaceTransformFlagBitsKHR desired_transform = GetSwapChainTransform(&surface_capabilities);
     VkPresentModeKHR desired_present_mode = GetSwapChainPresentMode(present_modes, present_modes_count, vsync);
     VkSwapchainKHR old_swap_chain = previous ? previous->Value : VK_NULL_HANDLE;
-    if ((int)(desired_usage) == -1)
+    if (static_cast<int>(desired_usage) == -1)
     {
         return nullptr;
     }
-    if ((int)(desired_present_mode) == -1)
+    if (static_cast<int>(desired_present_mode) == -1)
     {
         return nullptr;
     }
@@ -262,7 +269,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     }
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
         VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, // VkStructureType                sType
-        NULL, // const void                    *pNext
+        nullptr, // const void                    *pNext
         0, // VkSwapchainCreateFlagsKHR      flags
         presentationSurface->Value, // VkSurfaceKHR                   surface
         desired_number_of_images, // uint32_t                       minImageCount
@@ -273,7 +280,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
         desired_usage, // VkImageUsageFlags              imageUsage
         VK_SHARING_MODE_EXCLUSIVE, // VkSharingMode                  imageSharingMode
         0, // uint32_t                       queueFamilyIndexCount
-        NULL, // const uint32_t                *pQueueFamilyIndices
+        nullptr, // const uint32_t                *pQueueFamilyIndices
         desired_transform, // VkSurfaceTransformFlagBitsKHR  preTransform
         compositeAlpha, // VkCompositeAlphaFlagBitsKHR    compositeAlpha
         desired_present_mode, // VkPresentModeKHR               presentMode
@@ -300,7 +307,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
         VkSurfaceCapabilities2KHR surfaceCapabilities2KHR;
         // Ensure Vulkan surface capabilities are queried before enabling fullscreen exclusive
         surfaceCapabilities2KHR.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
-        surfaceCapabilities2KHR.pNext = NULL;
+        surfaceCapabilities2KHR.pNext = nullptr;
         physicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
         physicalDeviceSurfaceInfo2KHR.pNext = &surfaceFullScreenExclusiveInfoEXT;
         physicalDeviceSurfaceInfo2KHR.surface = presentationSurface->Value;
@@ -314,9 +321,11 @@ std::shared_ptr<SwapChain> SwapChain::Create(
         {
 #ifdef IS_PLATFORM_WIN
             VkSurfaceFullScreenExclusiveWin32InfoEXT surfaceFullScreenExclusiveWin32InfoEXT = {};
-            surfaceFullScreenExclusiveWin32InfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
-            surfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow(static_cast<HWND>(platformWindow), MONITOR_DEFAULTTOPRIMARY);
-            surfaceFullScreenExclusiveWin32InfoEXT.pNext = NULL;
+            surfaceFullScreenExclusiveWin32InfoEXT.sType =
+                VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
+            surfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow(
+                static_cast<HWND>(platformWindow), MONITOR_DEFAULTTOPRIMARY);
+            surfaceFullScreenExclusiveWin32InfoEXT.pNext = nullptr;
             surfaceFullScreenExclusiveInfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
             surfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT;
             surfaceFullScreenExclusiveInfoEXT.pNext = &surfaceFullScreenExclusiveWin32InfoEXT;
@@ -325,18 +334,18 @@ std::shared_ptr<SwapChain> SwapChain::Create(
         }
     }
     // Attempt to create the swapchain
-    VkResult result = vkCreateSwapchainKHR(device, &swap_chain_create_info, NULL, &ret->Value);
+    VkResult result = vkCreateSwapchainKHR(device, &swap_chain_create_info, nullptr, &ret->Value);
     if (result != VK_SUCCESS && supportsExclusiveFullscreen)
     {
         // Retry without fullscreen exclusive if the first attempt failed
-        swap_chain_create_info.pNext = NULL;
-        result = vkCreateSwapchainKHR(device, &swap_chain_create_info, NULL, &ret->Value);
+        swap_chain_create_info.pNext = nullptr;
+        result = vkCreateSwapchainKHR(device, &swap_chain_create_info, nullptr, &ret->Value);
     }
 #endif
     if (ret->Value == VK_NULL_HANDLE)
     {
         if (VK_CHECK(
-            vkCreateSwapchainKHR(device, &swap_chain_create_info, NULL, &ret->Value)) !=
+                vkCreateSwapchainKHR(device, &swap_chain_create_info, NULL, &ret->Value)) !=
             VK_SUCCESS)
         {
             return nullptr;
@@ -344,33 +353,33 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     }
     if (old_swap_chain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(device, old_swap_chain, NULL);
+        vkDestroySwapchainKHR(device, old_swap_chain, nullptr);
     }
     ret->Format = desired_format.format;
     uint32_t image_count = 0;
-    if ((vkGetSwapchainImagesKHR(device, ret->Value, &image_count, NULL) != VK_SUCCESS) ||
+    if ((vkGetSwapchainImagesKHR(device, ret->Value, &image_count, nullptr) != VK_SUCCESS) ||
         (image_count == 0))
     {
         return nullptr;
     }
-    VkImage* images = new VkImage[image_count];
+    auto images = new VkImage[image_count];
     if (vkGetSwapchainImagesKHR(device, ret->Value, &image_count, images) != VK_SUCCESS)
     {
         return nullptr;
     }
     ret->Images.resize(image_count);
-	ret->ImageViews.resize(image_count);    
-    for (int i = 0; i < (int)image_count; i++)
-    {        
+    ret->ImageViews.resize(image_count);
+    for (int i = 0; i < static_cast<int>(image_count); i++)
+    {
         ret->Images[i] = images[i];
         VkImageViewCreateInfo image_view_create_info = {
-           VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, // VkStructureType                sType
-           NULL, // const void                    *pNext
-           0, // VkImageViewCreateFlags         flags
-           images[i], // VkImage                        image
-           VK_IMAGE_VIEW_TYPE_2D, // VkImageViewType                viewType
-           colorFormat, // VkFormat                       format
-           {
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, // VkStructureType                sType
+            nullptr, // const void                    *pNext
+            0, // VkImageViewCreateFlags         flags
+            images[i], // VkImage                        image
+            VK_IMAGE_VIEW_TYPE_2D, // VkImageViewType                viewType
+            colorFormat, // VkFormat                       format
+            {
                 // VkComponentMapping             components
                 VK_COMPONENT_SWIZZLE_IDENTITY, // VkComponentSwizzle             r
                 VK_COMPONENT_SWIZZLE_IDENTITY, // VkComponentSwizzle             g
@@ -386,7 +395,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
                 1 // uint32_t                       layerCount
             }
         };
-		vkCreateImageView(device, &image_view_create_info, NULL, &ret->ImageViews[i]);  
+        vkCreateImageView(device, &image_view_create_info, nullptr, &ret->ImageViews[i]);
     }
     delete[] images;
     ret->Extent = desired_extent;
@@ -394,24 +403,26 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     delete[] present_modes;
     return ret;
 }
+
 SwapChain::~SwapChain()
-{ 
+{
     for (auto it : Images)
     {
-		vkDestroyImage(vkewGetDevice(), it, NULL);
+        vkDestroyImage(vkewGetDevice(), it, nullptr);
     }
-	for (auto it : ImageViews)
-	{
-		vkDestroyImageView(vkewGetDevice(), it, NULL);
-	}
+    for (auto it : ImageViews)
+    {
+        vkDestroyImageView(vkewGetDevice(), it, nullptr);
+    }
     Images.clear();
     ImageViews.clear();
     if (Value)
     {
-        vkDestroySwapchainKHR(vkewGetDevice(), Value, NULL);
+        vkDestroySwapchainKHR(vkewGetDevice(), Value, nullptr);
         Value = VK_NULL_HANDLE;
     }
 }
+
 std::shared_ptr<Surface> Surface::Create(VkInstance instance, void* platformHandle, void* platformWindow)
 {
     auto ret = std::make_shared<Surface>();
@@ -420,8 +431,8 @@ std::shared_ptr<Surface> Surface::Create(VkInstance instance, void* platformHand
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
     memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle; // provided by the platform code
-    surfaceCreateInfo.hwnd = (HWND)platformWindow; // provided by the platform code
+    surfaceCreateInfo.hinstance = static_cast<HINSTANCE>(platformHandle); // provided by the platform code
+    surfaceCreateInfo.hwnd = static_cast<HWND>(platformWindow); // provided by the platform code
     result = VK_CHECK(vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, NULL, &ret->Value));
 #elif defined(IS_PLATFORM_ANDROID)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
@@ -441,6 +452,7 @@ std::shared_ptr<Surface> Surface::Create(VkInstance instance, void* platformHand
     }
     return ret;
 }
+
 void Surface::GetPhysicalDeviceSurfaceFormats(VkPhysicalDevice physicalDevice)
 {
     uint32_t formatCount = 0;
