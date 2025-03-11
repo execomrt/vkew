@@ -90,6 +90,7 @@ extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
 extern PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets;
 extern PFN_vkAllocateMemory vkAllocateMemory;
 extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
+extern PFN_vkResetCommandBuffer vkResetCommandBuffer;
 extern PFN_vkBindBufferMemory vkBindBufferMemory;
 extern PFN_vkBindBufferMemory2 vkBindBufferMemory2;
 extern PFN_vkBindImageMemory vkBindImageMemory;

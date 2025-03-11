@@ -366,6 +366,7 @@ VKEW_GET_FUNCTION(vkAllocateCommandBuffers);
 VKEW_GET_FUNCTION(vkAllocateDescriptorSets);
 VKEW_GET_FUNCTION(vkAllocateMemory);
 VKEW_GET_FUNCTION(vkBeginCommandBuffer);
+VKEW_GET_FUNCTION(vkResetCommandBuffer);
 VKEW_GET_FUNCTION(vkBindBufferMemory);
 VKEW_GET_FUNCTION(vkBindBufferMemory2);
 VKEW_GET_FUNCTION(vkBindImageMemory);
@@ -1148,6 +1149,7 @@ int vkewInterfaceLevelInit(VkInterface value)
     VKEW_GET_FUNCTION(vkAllocateDescriptorSets);
     VKEW_GET_FUNCTION(vkAllocateMemory);
     VKEW_GET_FUNCTION(vkBeginCommandBuffer);
+    VKEW_GET_FUNCTION(vkResetCommandBuffer);
     VKEW_GET_FUNCTION(vkBindBufferMemory);
     VKEW_GET_FUNCTION(vkBindBufferMemory2);
     VKEW_GET_FUNCTION(vkBindImageMemory);

@@ -405,11 +405,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
 }
 
 SwapChain::~SwapChain()
-{
-    for (auto it : Images)
-    {
-        vkDestroyImage(vkewGetDevice(), it, nullptr);
-    }
+{    
     for (auto it : ImageViews)
     {
         vkDestroyImageView(vkewGetDevice(), it, nullptr);

@@ -75,6 +75,7 @@ struct VulkanResources {
     VkQueue graphicsQueue;
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
+    VkCommandBuffer oneTimeCommandBuffer;
     std::shared_ptr<Surface> surface;
     std::shared_ptr<SwapChain> swapChain;
     uint32_t imageIndex = 0;
@@ -84,7 +85,16 @@ struct VulkanResources {
     int GetSwapChainIndex() const { return frameIndex % swapChain->Images.size(); }
     void Cleanup()
     {
+       
+        for (size_t i = 0; i < inFlightFences.size(); ++i) {
+
+            vkDestroyFence(device, inFlightFences[i], nullptr);
+        }
         imageAvailableSemaphores.clear();
         renderFinishedSemaphores.clear();
+       
     }
+    std::vector<VkFence> inFlightFences;
+    uint32_t currentFrame = 0;
+    static const int MAX_FRAMES_IN_FLIGHT = 3;
 };
