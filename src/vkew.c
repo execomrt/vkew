@@ -119,7 +119,7 @@ const char* vkewVkImageLayoutToString(VkImageLayout input_value)
 		VKEW_CASE_STR(VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL); // 1000241002,
 		VKEW_CASE_STR(VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL); // 1000241003,
 		VKEW_CASE_STR(VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL); // 1000314000,
-		VKEW_CASE_STR(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL); // 1000314001,
+		VKEW_CASE_STR(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL); // 1000314001,		
 		VKEW_CASE_STR(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR); // 1000001002,
 	default: return VKEW_DEFAULT_CASE_STR("VkImageLayout", input_value);
 	}
@@ -148,6 +148,20 @@ const char* vkewVkDescriptorTypeToString(VkDescriptorType input_value)
 	default: return VKEW_DEFAULT_CASE_STR("VkDescriptorType", input_value);
 	}
 }
+
+const char* vkewVkPhysicalDeviceTypeToString(VkPhysicalDeviceType input_value)
+{
+	switch (input_value)
+	{
+		VKEW_CASE_STR(VK_PHYSICAL_DEVICE_TYPE_OTHER); // 0,
+		VKEW_CASE_STR(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU); // 1,
+		VKEW_CASE_STR(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU); // 2,
+		VKEW_CASE_STR(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU); // 3,
+		VKEW_CASE_STR(VK_PHYSICAL_DEVICE_TYPE_CPU); // 4,
+	default: return VKEW_DEFAULT_CASE_STR("VkPhysicalDeviceType", input_value);
+	}
+}
+
 const char* vkewVkColorSpaceToString(VkColorSpaceKHR input_value)
 {
 	switch (input_value)
@@ -583,6 +597,7 @@ struct vkewContext
 	VkPhysicalDeviceFeatures deviceFeatures;
 	VkPhysicalDeviceFeatures2 deviceFeatures2;
 	VkPhysicalDeviceProperties deviceProperties;
+	VkPhysicalDeviceProperties2 deviceProperties2;
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
 };
 static VKEWContext Vulkan;
@@ -1047,6 +1062,11 @@ static int vkewInit_VK_KHR_acceleration_structure(VkInterface value)
 		vkGetAccelerationStructureBuildSizesKHR != NULL;
 }
 #endif
+
+#ifdef VK_KHR_portability_enumeration
+VkBool32 VKEW_KHR_portability_enumeration;
+#endif
+
 #ifdef VK_KHR_buffer_device_address
 VkBool32 VKEW_KHR_buffer_device_address;
 PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
@@ -1255,6 +1275,15 @@ static int vkewInit_VK_KHR_surface(VkInterface value)
 	return VK_TRUE;
 }
 #endif /* VK_KHR_surface */
+
+#ifdef VK_EXT_swapchain_colorspace
+VkBool32 VKEW_EXT_swapchain_colorspace;
+#endif
+
+#ifdef VK_EXT_hdr_metadata	
+VkBool32 VKEW_EXT_hdr_metadata;
+#endif
+
 #ifdef VK_KHR_swapchain
 VkBool32 VKEW_KHR_swapchain;
 #if defined VK_NO_PROTOTYPES
@@ -1300,6 +1329,23 @@ static int vkewInit_VK_KHR_win32_surface(VkInterface value)
 	VKEW_GET_PROC(vkGetPhysicalDeviceWin32PresentationSupportKHR);
 #endif
 	return VK_TRUE;
+}
+#endif
+
+
+#ifdef VK_KHR_present_id
+VkBool32 VKEW_KHR_present_id;
+#endif
+
+#ifdef VK_KHR_present_wait
+VkBool32 VKEW_KHR_present_wait;
+#if defined VK_NO_PROTOTYPES
+PFN_vkWaitForPresentKHR vkWaitForPresentKHR;
+#endif
+static int vkewInit_VK_KHR_present_wait(VkInterface value)
+{
+	VKEW_GET_FUNCTION(vkWaitForPresentKHR);
+	return vkWaitForPresentKHR != NULL;
 }
 #endif
 #ifdef VK_KHR_driver_properties
@@ -1560,6 +1606,9 @@ int vkewInterfaceLevelInit(VkInterface value)
 #endif
 #ifdef VK_KHR_get_physical_device_properties2
 	vkewInit_VK_KHR_driver_properties(value);
+#endif
+#ifdef VK_KHR_present_wait
+	vkewInit_VK_KHR_present_wait(value);
 #endif
 	return VK_FALSE;
 }
@@ -2056,7 +2105,7 @@ int vkewInit(const VKEWSettings* lpArgs)
 	Vulkan.validationLayerNames = validationLayerNames;
 	Vulkan.validationLayerCount = 0;
 	Vulkan.enabledExtensions = enabledExtensions;
-	Vulkan.enabledExtensionCount = 0;
+	Vulkan.enabledExtensionCount = 0;	
 	VkApplicationInfo applicationInfo = { 0 };
 	VkInstanceCreateInfo instanceCreateInfo = { 0 };
 	Vulkan.enableValidation = Vulkan.settings.enableValidation != 0;
@@ -2174,6 +2223,10 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 	VkBool32 errataExtRobutness2 = Vulkan.deviceProperties.vendorID == VENDOR_ID_NVIDIA;
 	VKEW_KHR_swapchain = checkExtensionAvailability(
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME, available_extensions, extensions_count);
+
+	VKEW_EXT_swapchain_colorspace = checkExtensionAvailability(
+		VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, available_extensions, extensions_count);
+
 	VKEW_EXT_robustness2 = errataExtRobutness2
 		? VK_FALSE
 		: checkExtensionAvailability(
@@ -2204,6 +2257,8 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 		VK_KHR_MAINTENANCE_4_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_buffer_device_address = checkExtensionAvailability(
 		VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_KHR_portability_enumeration = checkExtensionAvailability(
+		VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_EXT_descriptor_indexing = checkExtensionAvailability(
 		VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_deferred_host_operations = checkExtensionAvailability(
@@ -2228,23 +2283,26 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 		VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_EXT_subgroup_size_control = checkExtensionAvailability(
 		VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_KHR_present_wait = checkExtensionAvailability(
+		VK_KHR_PRESENT_WAIT_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_KHR_present_id = checkExtensionAvailability(
+		VK_KHR_PRESENT_ID_EXTENSION_NAME, available_extensions, extensions_count);
 	if (VKEW_KHR_acceleration_structure)
 	{
 		Vulkan.accelerationStructureFeatures.sType =
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-		VkPhysicalDeviceFeatures2 deviceFeatures2;
-		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		deviceFeatures2.pNext = &Vulkan.accelerationStructureFeatures;
-		vkGetPhysicalDeviceFeatures2(physical_device, &deviceFeatures2);
+		
+		Vulkan.deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		Vulkan.deviceProperties2.pNext = &Vulkan.accelerationStructureFeatures;
+		vkGetPhysicalDeviceProperties2(physical_device, &Vulkan.deviceProperties2);
 	}
 	if (VKEW_KHR_ray_tracing_pipeline)
 	{
 		Vulkan.rayTracingPipelineProperties.sType =
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
-		VkPhysicalDeviceProperties2 deviceProperties2;
-		deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-		deviceProperties2.pNext = &Vulkan.rayTracingPipelineProperties;
-		vkGetPhysicalDeviceProperties2(physical_device, &deviceProperties2);
+		Vulkan.deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		Vulkan.deviceProperties2.pNext = &Vulkan.rayTracingPipelineProperties;
+		vkGetPhysicalDeviceProperties2(physical_device, &Vulkan.deviceProperties2);
 	}
 	l_free(available_extensions);
 	return VK_TRUE;
@@ -2406,11 +2464,32 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 	}
 	// All the extensions
 	int enabledExtensionCount = 0;
-	const char* ppEnabledExtensionNames[128] = { NULL };
+	const char* ppEnabledExtensionNames[VKEW_MAX_EXTENSIONS] = { NULL };
 	VkPhysicalDeviceFeatures* pEnabledFeatures = NULL;
+
+	
+	
+	vkGetPhysicalDeviceProperties(Vulkan.physicalDevice, &Vulkan.deviceProperties);
+	Vulkan.deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	vkGetPhysicalDeviceProperties2(Vulkan.physicalDevice, &Vulkan.deviceProperties2);	
+	vkGetPhysicalDeviceFeatures(Vulkan.physicalDevice, &Vulkan.deviceFeatures);
+	Vulkan.deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	vkGetPhysicalDeviceFeatures2(Vulkan.physicalDevice, &Vulkan.deviceFeatures2);
+	uint32_t apiVersion = Vulkan.deviceProperties.apiVersion;
+	uint32_t major = VK_VERSION_MAJOR(apiVersion);
+	uint32_t minor = VK_VERSION_MINOR(apiVersion);
+	VKEW_VERSION_1_1 = (major >= 1 && minor >= 1) || major > 1;
+	VKEW_VERSION_1_2 = (major >= 1 && minor >= 2) || major > 1;
+	VKEW_VERSION_1_3 = (major >= 1 && minor >= 3) || major > 1;
+	VKEW_VERSION_1_4 = (major >= 1 && minor >= 4) || major > 1;
+
 	if (VKEW_KHR_swapchain)
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+	}
+	if (VKEW_EXT_swapchain_colorspace)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME;
 	}
 	if (VKEW_KHR_image_format_list)
 	{
@@ -2435,6 +2514,10 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 	if (VKEW_KHR_deferred_host_operations)
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
+	}
+	if (VKEW_KHR_present_wait)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PRESENT_WAIT_EXTENSION_NAME;
 	}
 	if (Vulkan.enableRaytracing)
 	{
@@ -2519,6 +2602,7 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME;
 	}
+	VK_ASSERT(enabledExtensionCount <= VKEW_MAX_EXTENSIONS);
 	VkDeviceQueueCreateInfo queue_create_infos[3];
 	float queue_priorities[] = { 1.0f };
 	int queueCount = 1;
@@ -2583,38 +2667,57 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 			NULL,
 			VK_TRUE // Enable synchronization2 features
 		};
-		VkPhysicalDeviceFeatures2 features2 = {
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-			NULL
-		};
+		VkPhysicalDeviceFeatures2 features2 = { 0 };		
+		features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		features2.features = Vulkan.deviceFeatures2.features;
+		
+		if (!features2.features.samplerAnisotropy)
+			features2.features.samplerAnisotropy = 0;		
+
 		VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
 			NULL,
 			VK_TRUE // Enable dynamic rendering features
-		};
-		features2.features.samplerAnisotropy = VK_TRUE;
+		};		
+		if (VKEW_VERSION_1_1) 
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&features2;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}		
+
 		// Chain pNext properly
 		if (VKEW_EXT_robustness2)
 		{
-			lastPNext = (VkBaseInStructure*)&robustness2;
-			device_create_info.pNext = (VkBaseInStructure*)&robustness2;
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&robustness2;	
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
 		}
 		if (VKEW_KHR_synchronization2)
 		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&sync2Features;
 			if (lastPNext)
-				lastPNext->pNext = (VkBaseInStructure*)&sync2Features;
+				lastPNext->pNext = pNext;
 			else
-				device_create_info.pNext = (VkBaseInStructure*)&sync2Features;
-			lastPNext = (VkBaseInStructure*)&sync2Features;
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
 		}
 		if (VKEW_KHR_dynamic_rendering)
 		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
 			if (lastPNext)
-				lastPNext->pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+				lastPNext->pNext = pNext;
 			else
-				device_create_info.pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
-			lastPNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
 		}
+
 		// Create the Vulkan logical device
 		VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, NULL, &Vulkan.i.device));
 		if (ret == VK_SUCCESS)
@@ -2638,15 +2741,10 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 	Vulkan.queueNodeIndex = Vulkan.graphicsQueueFamilyIndex;
 	Vulkan.queueTransfertIndex = Vulkan.transfertQueueFamilyIndex;
 	Vulkan.queueComputeIndex = Vulkan.computeQueueFamilyIndex;
-	vkGetPhysicalDeviceProperties(Vulkan.physicalDevice, &Vulkan.deviceProperties);
+	
 	vkGetPhysicalDeviceFeatures(Vulkan.physicalDevice, &Vulkan.deviceFeatures);
-	uint32_t apiVersion = Vulkan.deviceProperties.apiVersion;
-	uint32_t major = VK_VERSION_MAJOR(apiVersion);
-	uint32_t minor = VK_VERSION_MINOR(apiVersion);
-	VKEW_VERSION_1_1 = (major >= 1 && minor >= 1) || major > 1;
-	VKEW_VERSION_1_2 = (major >= 1 && minor >= 2) || major > 1;
-	VKEW_VERSION_1_3 = (major >= 1 && minor >= 3) || major > 1;
-	VKEW_VERSION_1_4 = (major >= 1 && minor >= 4) || major > 1;
+	
+	
 	return VK_SUCCESS;
 }
 void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f)

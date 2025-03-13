@@ -52,7 +52,7 @@ typedef struct vkewSettings
 	int engineVersion;
 	int apiVersion;
 	void (*pfnLog)(VKEWMessageLevel level, const char* pszFormat, ...);
-	void (*pfnOnError)(void);
+	void (*pfnOnError)(void);	
 	unsigned int enableValidation : 1;
 	unsigned int enableRaytracing : 1;
 	unsigned int enableDynamicRendering : 1;
@@ -75,6 +75,10 @@ extern "C" {
 	extern const char* vkewVkFormatToString(VkFormat input_value);
 	extern const char* vkewVkDescriptorTypeToString(VkDescriptorType input_value);
 	extern const char* vkewVkImageLayoutToString(VkImageLayout input_value);
+	extern const char* vkewVkPhysicalDeviceTypeToString(VkPhysicalDeviceType input_value);
+	extern const char* vkewVkResultToString(VkResult input_value);
+
+
 	extern int vkewGetQueueNodeIndex(void);
 	extern int vkewGetQueueTransfertIndex(void);
 	extern int vkewGetComputeIndex(void);
@@ -234,6 +238,15 @@ extern "C" {
 	extern PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT;
 	extern PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT;
 #endif
+
+#ifdef VK_EXT_swapchain_colorspace
+	extern VkBool32 VKEW_EXT_swapchain_colorspace;
+#endif
+
+#ifdef VK_EXT_hdr_metadata
+	extern VkBool32 VKEW_EXT_hdr_metadata;
+#endif
+
 #ifdef VK_KHR_swapchain
 	extern VkBool32 VKEW_KHR_swapchain;
 	extern PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR;
@@ -469,6 +482,10 @@ extern "C" {
 
 #ifdef VK_KHR_buffer_device_address
 	extern VkBool32 VKEW_KHR_buffer_device_address;
+#endif
+
+#ifdef VK_KHR_portability_enumeration
+	extern VkBool32 VKEW_KHR_portability_enumeration;
 #endif
 
 #ifdef VK_KHR_deferred_host_operations
