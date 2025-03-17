@@ -36,6 +36,9 @@
 #if defined _WIN32 && defined _INC_WINDOWS
 #include "vulkan/vulkan_win32.h"
 #endif
+#if defined ANDROID || defined __ANDROID__
+#include "vulkan/vulkan_android.h"
+#endif
 typedef struct vkewContext VKEWContext;
 typedef enum vkewMessageLevel
 {
@@ -51,20 +54,18 @@ typedef struct vkewSettings
 	const char* pEngineName;
 	int engineVersion;
 	int apiVersion;
+	VkAllocationCallbacks* pAllocator;
 	void (*pfnLog)(VKEWMessageLevel level, const char* pszFormat, ...);
 	void (*pfnOnError)(void);	
 	unsigned int enableValidation : 1;
 	unsigned int enableRaytracing : 1;
 	unsigned int enableDynamicRendering : 1;
 }VKEWSettings;
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 	extern int vkewInit(const VKEWSettings* lpArg);
 	extern void vkewDestroy(void);
-
 	extern VkDevice vkewGetDevice(void);
 	extern VkInstance vkewGetInstance(void);
 	extern VkPhysicalDevice vkewGetPhysicalDevice(void);
@@ -77,11 +78,10 @@ extern "C" {
 	extern const char* vkewVkImageLayoutToString(VkImageLayout input_value);
 	extern const char* vkewVkPhysicalDeviceTypeToString(VkPhysicalDeviceType input_value);
 	extern const char* vkewVkResultToString(VkResult input_value);
-
-
 	extern int vkewGetQueueNodeIndex(void);
 	extern int vkewGetQueueTransfertIndex(void);
 	extern int vkewGetComputeIndex(void);
+	extern const VkAllocationCallbacks* vkewGetAllocationCallbacks(void);
 	extern uint32_t vkewGetGraphicsQueueFamilyIndex(void);
 	extern uint32_t vkewGetComputeQueueFamilyIndex(void);
 	extern uint32_t vkewGetTransfertQueueFamilyIndex(void);
@@ -92,7 +92,6 @@ extern "C" {
 	extern VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR presentation_surface, uint32_t* selected_graphics_queue_family_index, uint32_t* selected_present_queue_family_index, uint32_t* selected_transfer_queue_family_index, uint32_t* selected_compute_queue_family_index);
 	extern VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index, uint32_t selected_present_queue_family_index, uint32_t selected_transfert_queue_family_index, uint32_t selected_compute_queue_family_index);
 #if defined VK_NO_PROTOTYPES
-
 	extern PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
 	extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
 	extern PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets;
@@ -231,22 +230,17 @@ extern "C" {
 	extern PFN_vkCmdBeginRenderPass2 vkCmdBeginRenderPass2;
 	extern PFN_vkCmdNextSubpass2 vkCmdNextSubpass2;
 	extern PFN_vkCmdEndRenderPass2 vkCmdEndRenderPass2;
-
-
 #endif
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT;
 	extern PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT;
 #endif
-
 #ifdef VK_EXT_swapchain_colorspace
 	extern VkBool32 VKEW_EXT_swapchain_colorspace;
 #endif
-
 #ifdef VK_EXT_hdr_metadata
 	extern VkBool32 VKEW_EXT_hdr_metadata;
 #endif
-
 #ifdef VK_KHR_swapchain
 	extern VkBool32 VKEW_KHR_swapchain;
 	extern PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR;
@@ -254,7 +248,6 @@ extern "C" {
 	extern PFN_vkCreateSharedSwapchainsKHR vkCreateSharedSwapchainsKHR;
 	extern PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR;
 #endif
-
 #ifdef VK_KHR_display
 	extern VkBool32 VKEW_KHR_display;
 #if defined VK_NO_PROTOTYPES
@@ -267,7 +260,6 @@ extern "C" {
 	extern PFN_vkCreateDisplayPlaneSurfaceKHR vkCreateDisplayPlaneSurfaceKHR;
 #endif
 #endif
-
 #ifdef VK_KHR_image_format_list
 	extern VkBool32 VKEW_KHR_image_format_list;
 #endif
@@ -302,7 +294,6 @@ extern "C" {
 #ifdef VK_EXT_robustness2
 	extern VkBool32 VKEW_EXT_robustness2;
 #endif
-
 #ifdef VK_KHR_get_physical_device_properties2 
 	extern VkBool32 VKEW_KHR_get_physical_device_properties2;
 #if defined VK_NO_PROTOTYPES
@@ -315,7 +306,6 @@ extern "C" {
 	extern PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
 #endif
 #endif
-
 #ifdef VK_EXT_full_screen_exclusive
 	extern VkBool32 VKEW_EXT_full_screen_exclusive;
 #if defined VK_NO_PROTOTYPES
@@ -325,7 +315,6 @@ extern "C" {
 	extern PFN_vkReleaseFullScreenExclusiveModeEXT vkReleaseFullScreenExclusiveModeEXT;
 #endif
 #endif
-
 #ifdef VK_KHR_push_descriptor 
 	extern VkBool32 VKEW_KHR_push_descriptor;
 #if defined VK_NO_PROTOTYPES
@@ -333,7 +322,6 @@ extern "C" {
 	extern PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTemplateKHR;
 #endif
 #endif
-
 	// VK_KHR_dynamic_rendering is a preprocessor guard. Do not pass it to API calls.
 #ifdef VK_KHR_dynamic_rendering 
 	extern VkBool32 VKEW_KHR_dynamic_rendering;
@@ -342,7 +330,6 @@ extern "C" {
 	extern PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
 #endif
 #endif
-
 #ifdef VK_EXT_debug_utils
 	extern VkBool32 VKEW_EXT_debug_utils;
 #if defined VK_NO_PROTOTYPES
@@ -390,48 +377,38 @@ extern "C" {
 #endif
 	extern VkBool32 VKEW_EXT_debug_report;
 	extern VkBool32 VKEW_EXT_debug_utils;
-
 #ifdef VK_KHR_maintenance1
 	extern VkBool32 VKEW_KHR_maintenance1;
 #endif
-
 #ifdef VK_KHR_maintenance2
 	extern VkBool32 VKEW_KHR_maintenance2;
-
 #ifdef VK_KHR_maintenance3
 	extern VkBool32 VKEW_KHR_maintenance3;
 #endif
-
 #ifdef VK_KHR_present_id
 	extern VkBool32 VKEW_KHR_present_id;
 #endif
-
 #ifdef VK_KHR_present_wait
 	extern VkBool32 VKEW_KHR_present_wait;
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkWaitForPresentKHR vkWaitForPresentKHR;
 #endif
 #endif
-
 #ifdef VK_KHR_shared_presentable_image
 	extern VkBool32 VKEW_KHR_shared_presentable_image;
 #if defined VK_NO_PROTOTYPES
 	extern PFN_vkGetSwapchainStatusKHR vkGetSwapchainStatusKHR;
 #endif
 #endif
-
 #ifdef VK_KHR_incremental_present
 	extern VkBool32 VKEW_KHR_incremental_present;
 #endif
-
-
 #ifdef VK_KHR_maintenance4
 	extern VkBool32 VKEW_KHR_maintenance4;
 	extern PFN_vkGetDeviceBufferMemoryRequirementsKHR vkGetDeviceBufferMemoryRequirementsKHR;
 	extern PFN_vkGetDeviceImageMemoryRequirementsKHR vkGetDeviceImageMemoryRequirementsKHR;
 	extern PFN_vkGetDeviceImageSparseMemoryRequirementsKHR vkGetDeviceImageSparseMemoryRequirementsKHR;
 #endif
-
 #ifdef VK_KHR_maintenance5
 	extern VkBool32 VKEW_KHR_maintenance5;
 	extern PFN_vkCmdBindIndexBuffer2KHR vkCmdBindIndexBuffer2KHR;
@@ -439,8 +416,6 @@ extern "C" {
 	extern PFN_vkGetDeviceImageSubresourceLayoutKHR vkGetDeviceImageSubresourceLayoutKHR;
 	extern PFN_vkGetImageSubresourceLayout2KHR vkGetImageSubresourceLayout2KHR;
 #endif
-
-
 	// VK_KHR_acceleration_structure is a preprocessor guard. Do not pass it to API calls.
 #ifdef VK_KHR_acceleration_structure
 	extern VkBool32 VKEW_KHR_acceleration_structure;
@@ -461,7 +436,6 @@ extern "C" {
 	extern PFN_vkGetDeviceAccelerationStructureCompatibilityKHR vkGetDeviceAccelerationStructureCompatibilityKHR;
 	extern PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
 #endif
-
 #ifdef VK_KHR_ray_tracing_pipeline
 	extern VkBool32 VKEW_KHR_ray_tracing_pipeline;
 	extern PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRaysKHR;
@@ -472,76 +446,58 @@ extern "C" {
 	extern PFN_vkGetRayTracingShaderGroupStackSizeKHR            vkGetRayTracingShaderGroupStackSizeKHR;
 	extern PFN_vkCmdSetRayTracingPipelineStackSizeKHR            vkCmdSetRayTracingPipelineStackSizeKHR;
 #endif 
-
 #ifdef VK_KHR_ray_query
 	extern VkBool32 VKEW_KHR_ray_query;
 	extern PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
 	extern PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirectEXT;
 	extern PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCountEXT;
 #endif 
-
 #ifdef VK_KHR_buffer_device_address
 	extern VkBool32 VKEW_KHR_buffer_device_address;
 #endif
-
 #ifdef VK_KHR_portability_enumeration
 	extern VkBool32 VKEW_KHR_portability_enumeration;
 #endif
-
 #ifdef VK_KHR_deferred_host_operations
 	extern VkBool32 VKEW_KHR_deferred_host_operations;
 #endif
-
 #ifdef VK_EXT_descriptor_indexing
 	extern VkBool32 VKEW_EXT_descriptor_indexing;
 #endif
-
 #ifdef VK_KHR_spirv_1_4
 	extern VkBool32 VKEW_KHR_spirv_1_4;
 #endif
-
 #ifdef VK_KHR_shader_float_controls
 	extern VkBool32 VKEW_KHR_shader_float_controls;
 #endif
-
 #ifdef VK_KHR_pipeline_library 
 	extern VkBool32 VKEW_KHR_pipeline_library;
 #endif
-
 #ifdef VK_KHR_timeline_semaphore 
 	extern VkBool32 VKEW_KHR_timeline_semaphore;
 #endif
-
 #ifdef VK_KHR_shader_clock 
 	extern VkBool32 VKEW_KHR_shader_clock;
 #endif
-
 #ifdef VK_KHR_shader_float16_int8 
 	extern VkBool32 VKEW_KHR_shader_float16_int8;
 #endif
-
 #ifdef VK_KHR_driver_properties 
 	extern VkBool32 VKEW_KHR_driver_properties;
 #endif
-
 #ifdef VK_EXT_memory_priority 
 	extern VkBool32 VKEW_EXT_memory_priority;
 #endif
-
 #ifdef VK_EXT_pipeline_creation_cache_control 
 	extern VkBool32 VKEW_EXT_pipeline_creation_cache_control;
 #endif
-
 #ifdef VK_EXT_subgroup_size_control 
 	extern VkBool32 VKEW_EXT_subgroup_size_control;
 #endif
-
-
 	extern VkBool32 VKEW_VERSION_1_1;
 	extern VkBool32 VKEW_VERSION_1_2;
 	extern VkBool32 VKEW_VERSION_1_3;
 	extern VkBool32 VKEW_VERSION_1_4;
-
 #ifdef __cplusplus
 }
 #endif

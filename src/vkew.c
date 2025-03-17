@@ -86,8 +86,45 @@ static PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN;
 #include "vkew.h"
 #include "vkewVendors.h"
 
-#define l_calloc(count, size) calloc(count, size)
-#define l_free(ptr) if (ptr) free(ptr)
+static void* vkewDefaultAlloc(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+{
+	(void)pUserData;
+	(void)allocationScope;
+#ifdef _WIN32
+	return _aligned_malloc(size, alignment);
+#else
+	return malloc(size);
+#endif
+}
+static void* vkewDefaultRealloc(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+{
+	(void)pUserData;
+	(void)allocationScope;
+#ifdef _WIN32
+	return _aligned_realloc(pOriginal, size, alignment);
+#else
+	return realloc(pOriginal, size);
+#endif
+}
+static void vkewDefaultFree(void* pUserData, void* pMemory)
+{
+	(void)pUserData;
+#ifdef _WIN32
+	_aligned_free(pMemory);
+#else
+	free(pMemory);
+#endif
+}
+static void vkewDefaultInternalAlloc(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+{
+
+}
+static void vkewDefaultInternalFree(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+{
+
+}
+
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define VKEW_CASE_STR(x) case x: return #x
 #define VKEW_MAX_EXTENSIONS 128
@@ -584,6 +621,7 @@ struct vkewContext
 	uint32_t queueNodeIndex;
 	uint32_t queueTransfertIndex;
 	uint32_t transfertQueueFamilyIndex;
+	VkAllocationCallbacks allocationCallbacks;
 	VkApplicationInfo appInfo;
 	VkDebugReportCallbackEXT messageCallback;
 	VkDebugUtilsMessengerEXT debugMessenger;
@@ -1631,7 +1669,7 @@ void vkewDestroy(void)
 	if (Vulkan.i.device != VK_NULL_HANDLE)
 	{
 		vkDeviceWaitIdle(Vulkan.i.device);
-		vkDestroyDevice(Vulkan.i.device, NULL);
+		vkDestroyDevice(Vulkan.i.device, &Vulkan.allocationCallbacks);
 		Vulkan.i.device = VK_NULL_HANDLE;
 	}
 	if (Vulkan.i.instance != VK_NULL_HANDLE)
@@ -1639,10 +1677,10 @@ void vkewDestroy(void)
 #ifdef VK_EXT_debug_utils
 		if (Vulkan.debugMessenger != VK_NULL_HANDLE)
 		{
-			vkDestroyDebugUtilsMessengerEXT(Vulkan.i.instance, Vulkan.debugMessenger, NULL);
+			vkDestroyDebugUtilsMessengerEXT(Vulkan.i.instance, Vulkan.debugMessenger, &Vulkan.allocationCallbacks);
 		}
 #endif
-		vkDestroyInstance(Vulkan.i.instance, NULL);
+		vkDestroyInstance(Vulkan.i.instance, &Vulkan.allocationCallbacks);
 		Vulkan.i.instance = VK_NULL_HANDLE;
 	}
 #if defined(_WIN32)
@@ -1691,93 +1729,97 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsCallback(
 {
 	char prefix[64] = "";
 	size_t messageLen = strlen(pCallbackData->pMessage) + 5000;
-	char* message = malloc(messageLen);
-	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+	char* message = Vulkan.allocationCallbacks.pfnAllocation(NULL, messageLen, 4, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+	if (message)
 	{
-		l_strncat(prefix, sizeof(prefix), "VERBOSE : ");
-	}
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-	{
-		l_strncat(prefix, sizeof(prefix), "INFO : ");
-	}
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-	{
-		l_strncat(prefix, sizeof(prefix), "WARNING : ");
-	}
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-	{
-		l_strncat(prefix, sizeof(prefix), "ERROR : ");
-	}
-	if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
-	{
-		l_strncat(prefix, sizeof(prefix), "GENERAL");
-	}
-	else
-	{
-		if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+		*message = 0;
+		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 		{
-			l_strncat(prefix, sizeof(prefix), "VALIDATION");
+			l_strncat(prefix, sizeof(prefix), "VERBOSE : ");
 		}
-		if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+		{
+			l_strncat(prefix, sizeof(prefix), "INFO : ");
+		}
+		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+		{
+			l_strncat(prefix, sizeof(prefix), "WARNING : ");
+		}
+		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+		{
+			l_strncat(prefix, sizeof(prefix), "ERROR : ");
+		}
+		if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+		{
+			l_strncat(prefix, sizeof(prefix), "GENERAL");
+		}
+		else
 		{
 			if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 			{
-				l_strncat(prefix, sizeof(prefix), "|");
+				l_strncat(prefix, sizeof(prefix), "VALIDATION");
 			}
-			l_strncat(prefix, sizeof(prefix), "PERFORMANCE");
-		}
-	}
-	l_snprintf(message, messageLen, "%s - Message Id Number: %d | Message Id Name: %s\n\t%s\n", prefix,
-		pCallbackData->messageIdNumber,
-		pCallbackData->pMessageIdName, pCallbackData->pMessage);
-	if (pCallbackData->objectCount > 0)
-	{
-		char tmp_message[500];
-		l_snprintf(tmp_message, sizeof(tmp_message), "\n\tObjects - %d\n", pCallbackData->objectCount);
-		l_strncat(message, messageLen, tmp_message);
-		for (uint32_t object = 0; object < pCallbackData->objectCount; ++object)
-		{
-			if (NULL != pCallbackData->pObjects[object].pObjectName && strlen(
-				pCallbackData->pObjects[object].pObjectName) > 0)
+			if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 			{
-				l_snprintf(tmp_message, sizeof(tmp_message), "\t\tObject[%d] - %s, Handle %p, Name \"%s\"\n", object,
-					vkewVkObjectTypeToString(pCallbackData->pObjects[object].objectType),
-					(void*)(pCallbackData->pObjects[object].objectHandle),
-					pCallbackData->pObjects[object].pObjectName);
+				if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+				{
+					l_strncat(prefix, sizeof(prefix), "|");
+				}
+				l_strncat(prefix, sizeof(prefix), "PERFORMANCE");
 			}
-			else
-			{
-				l_snprintf(tmp_message, sizeof(tmp_message), "\t\tObject[%d] - %s, Handle %p\n", object,
-					vkewVkObjectTypeToString(pCallbackData->pObjects[object].objectType),
-					(void*)(pCallbackData->pObjects[object].objectHandle));
-			}
-			l_strncat(message, messageLen, tmp_message);
 		}
-	}
-	if (pCallbackData->cmdBufLabelCount > 0)
-	{
-		char tmp_message[500];
-		l_snprintf(tmp_message, sizeof(tmp_message), "\n\tCommand Buffer Labels - %d\n",
-			pCallbackData->cmdBufLabelCount);
-		l_strncat(message, messageLen, tmp_message);
-		for (uint32_t cmd_buf_label = 0; cmd_buf_label < pCallbackData->cmdBufLabelCount; ++cmd_buf_label)
+		l_snprintf(message, messageLen, "%s - Message Id Number: %d | Message Id Name: %s\n\t%s\n", prefix,
+			pCallbackData->messageIdNumber,
+			pCallbackData->pMessageIdName, pCallbackData->pMessage);
+		if (pCallbackData->objectCount > 0)
 		{
-			l_snprintf(tmp_message, sizeof(tmp_message), "\t\tLabel[%d] - %s { %f, %f, %f, %f}\n", cmd_buf_label,
-				pCallbackData->pCmdBufLabels[cmd_buf_label].pLabelName,
-				pCallbackData->pCmdBufLabels[cmd_buf_label].color[0],
-				pCallbackData->pCmdBufLabels[cmd_buf_label].color[1],
-				pCallbackData->pCmdBufLabels[cmd_buf_label].color[2],
-				pCallbackData->pCmdBufLabels[cmd_buf_label].color[3]);
+			char tmp_message[500];
+			l_snprintf(tmp_message, sizeof(tmp_message), "\n\tObjects - %d\n", pCallbackData->objectCount);
 			l_strncat(message, messageLen, tmp_message);
+			for (uint32_t object = 0; object < pCallbackData->objectCount; ++object)
+			{
+				if (NULL != pCallbackData->pObjects[object].pObjectName && strlen(
+					pCallbackData->pObjects[object].pObjectName) > 0)
+				{
+					l_snprintf(tmp_message, sizeof(tmp_message), "\t\tObject[%d] - %s, Handle %p, Name \"%s\"\n", object,
+						vkewVkObjectTypeToString(pCallbackData->pObjects[object].objectType),
+						(void*)(pCallbackData->pObjects[object].objectHandle),
+						pCallbackData->pObjects[object].pObjectName);
+				}
+				else
+				{
+					l_snprintf(tmp_message, sizeof(tmp_message), "\t\tObject[%d] - %s, Handle %p\n", object,
+						vkewVkObjectTypeToString(pCallbackData->pObjects[object].objectType),
+						(void*)(pCallbackData->pObjects[object].objectHandle));
+				}
+				l_strncat(message, messageLen, tmp_message);
+			}
 		}
+		if (pCallbackData->cmdBufLabelCount > 0)
+		{
+			char tmp_message[500];
+			l_snprintf(tmp_message, sizeof(tmp_message), "\n\tCommand Buffer Labels - %d\n",
+				pCallbackData->cmdBufLabelCount);
+			l_strncat(message, messageLen, tmp_message);
+			for (uint32_t cmd_buf_label = 0; cmd_buf_label < pCallbackData->cmdBufLabelCount; ++cmd_buf_label)
+			{
+				l_snprintf(tmp_message, sizeof(tmp_message), "\t\tLabel[%d] - %s { %f, %f, %f, %f}\n", cmd_buf_label,
+					pCallbackData->pCmdBufLabels[cmd_buf_label].pLabelName,
+					pCallbackData->pCmdBufLabels[cmd_buf_label].color[0],
+					pCallbackData->pCmdBufLabels[cmd_buf_label].color[1],
+					pCallbackData->pCmdBufLabels[cmd_buf_label].color[2],
+					pCallbackData->pCmdBufLabels[cmd_buf_label].color[3]);
+				l_strncat(message, messageLen, tmp_message);
+			}
+		}
+		LogMessage(VKEW_MESSAGE_VERBOSE, "%s\n", message);
+		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+		{
+			if (Vulkan.settings.pfnOnError)
+				Vulkan.settings.pfnOnError();
+		}
+		Vulkan.allocationCallbacks.pfnFree(NULL, message);
 	}
-	LogMessage(VKEW_MESSAGE_VERBOSE, "%s\n", message);
-	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-	{
-		if (Vulkan.settings.pfnOnError)
-			Vulkan.settings.pfnOnError();
-	}
-	l_free(message);
 	// Don't bail out, but keep going.
 	return VK_FALSE;
 }
@@ -1826,7 +1868,7 @@ static int InitValidationLayers(int enableValidation)
 	const char** it = instance_validation_layers_alt1;
 	if (instance_layer_count > 0)
 	{
-		VkLayerProperties* instance_layers = malloc(sizeof(VkLayerProperties) * instance_layer_count);
+		VkLayerProperties* instance_layers = (VkLayerProperties*)Vulkan.allocationCallbacks.pfnAllocation(NULL, sizeof(VkLayerProperties) * instance_layer_count, 4, 0);
 		err = vkEnumerateInstanceLayerProperties(&instance_layer_count, instance_layers);
 		validation_found = vkewCheckLayerAvailabilty(ARRAY_SIZE(instance_validation_layers_alt1), it,
 			instance_layer_count, instance_layers);
@@ -1860,7 +1902,7 @@ static int InitValidationLayers(int enableValidation)
 				}
 			}
 		}
-		l_free(instance_layers);
+		Vulkan.allocationCallbacks.pfnFree(NULL, instance_layers);
 		return validation_found;
 	}
 	return 0;
@@ -1875,7 +1917,7 @@ static void InitExtensionsLayers(int enableValidation)
 	Vulkan.enabledExtensionCount = 0;
 	if (instance_extension_count > 0)
 	{
-		VkExtensionProperties* instance_extensions = malloc(sizeof(VkExtensionProperties) * instance_extension_count);
+		VkExtensionProperties* instance_extensions = (VkExtensionProperties*) Vulkan.allocationCallbacks.pfnAllocation(NULL, sizeof(VkExtensionProperties) * instance_extension_count, 4, 0);
 		err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, instance_extensions);
 		for (int32_t i = 0; i < (int32_t)instance_extension_count; i++)
 		{
@@ -1961,7 +2003,7 @@ static void InitExtensionsLayers(int enableValidation)
 				}
 			}
 		}
-		l_free(instance_extensions);
+		Vulkan.allocationCallbacks.pfnFree(NULL, instance_extensions);
 	}
 	if (!surfaceExtFound)
 	{
@@ -2036,7 +2078,7 @@ static void ActivateDebugReport()
 #ifdef USE_EXT_debug_report
 	if (VKEW_EXT_debug_report)
 	{
-		VkResult err = vkCreateDebugReportCallbackEXT(vkewGetInstance(), &s_CreateInfoDebugReport, 0, &Vulkan.messageCallback);
+		VkResult err = vkCreateDebugReportCallbackEXT(vkewGetInstance(), &s_CreateInfoDebugReport, &Vulkan.allocationCallbacks, &Vulkan.messageCallback);
 		switch (err) {
 		case VK_SUCCESS:
 			break;
@@ -2052,17 +2094,17 @@ static void ActivateDebugReport()
 #ifdef VK_EXT_debug_utils
 	if (VKEW_EXT_debug_utils)
 	{
-		VkResult err = vkCreateDebugUtilsMessengerEXT(Vulkan.i.instance, &s_CreateInfoUtilMessenger, NULL,
-			&Vulkan.debugMessenger);
+		VkResult err = vkCreateDebugUtilsMessengerEXT(Vulkan.i.instance, &s_CreateInfoUtilMessenger, 
+			 &Vulkan.allocationCallbacks, &Vulkan.debugMessenger);
 		switch (err)
 		{
 		case VK_SUCCESS:
 			break;
 		case VK_ERROR_OUT_OF_HOST_MEMORY:
-			LogMessage(VKEW_MESSAGE_VERBOSE, "CreateDebugUtilsMessengerEXT: out of host memory");
+			//LogMessage(VKEW_MESSAGE_VERBOSE, "CreateDebugUtilsMessengerEXT: out of host memory");
 			break;
 		default:
-			LogMessage(VKEW_MESSAGE_VERBOSE, "CreateDebugUtilsMessengerEXT: unknown failure");
+			//LogMessage(VKEW_MESSAGE_VERBOSE, "CreateDebugUtilsMessengerEXT: unknown failure");
 			break;
 		}
 	}
@@ -2106,6 +2148,7 @@ int vkewInit(const VKEWSettings* lpArgs)
 	Vulkan.validationLayerCount = 0;
 	Vulkan.enabledExtensions = enabledExtensions;
 	Vulkan.enabledExtensionCount = 0;	
+	
 	VkApplicationInfo applicationInfo = { 0 };
 	VkInstanceCreateInfo instanceCreateInfo = { 0 };
 	Vulkan.enableValidation = Vulkan.settings.enableValidation != 0;
@@ -2142,7 +2185,23 @@ int vkewInit(const VKEWSettings* lpArgs)
 	applicationInfo.pEngineName = Vulkan.settings.pEngineName;
 	applicationInfo.engineVersion = Vulkan.settings.engineVersion;
 	applicationInfo.apiVersion = Vulkan.settings.apiVersion;
+	if (!Vulkan.settings.pAllocator)
+	{
+		Vulkan.allocationCallbacks.pfnAllocation = vkewDefaultAlloc;
+		Vulkan.allocationCallbacks.pfnReallocation = vkewDefaultRealloc;
+		Vulkan.allocationCallbacks.pfnFree = vkewDefaultFree;
+		Vulkan.allocationCallbacks.pfnInternalAllocation = vkewDefaultInternalAlloc;
+		Vulkan.allocationCallbacks.pfnInternalFree = vkewDefaultInternalFree;
+		Vulkan.allocationCallbacks.pUserData = NULL;
+	}
+	else
+	{
+		Vulkan.allocationCallbacks = *Vulkan.settings.pAllocator;
+	}
+
+
 	int enableValidation = InitValidationLayers(Vulkan.settings.enableValidation);
+	
 	InitExtensionsLayers(enableValidation);
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceCreateInfo.pNext = NULL;
@@ -2158,8 +2217,10 @@ int vkewInit(const VKEWSettings* lpArgs)
 	{
 		InitDebugReport();
 	}
+	
+
 	err = VK_CHECK(vkCreateInstance(&Vulkan.instanceCreateInfo,
-		NULL, // If pAllocator is not NULL, pAllocator must be a pointer to a valid VkAllocationCallbacks structure
+		&Vulkan.allocationCallbacks, // If pAllocator is not NULL, pAllocator must be a pointer to a valid VkAllocationCallbacks structure
 		&Vulkan.i.instance)); //pInstance points a VkInstance handle in which the resulting instance is returned.
 	if (err == VK_ERROR_INCOMPATIBLE_DRIVER)
 	{
@@ -2203,7 +2264,7 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 	{
 		return VK_FALSE;
 	}
-	VkExtensionProperties* available_extensions = l_calloc(extensions_count, sizeof(VkExtensionProperties));
+	VkExtensionProperties* available_extensions = Vulkan.allocationCallbacks.pfnAllocation(NULL, extensions_count * sizeof(VkExtensionProperties), 4, 0);
 	if (vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extensions_count, &available_extensions[0]) !=
 		VK_SUCCESS)
 	{
@@ -2304,7 +2365,7 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 		Vulkan.deviceProperties2.pNext = &Vulkan.rayTracingPipelineProperties;
 		vkGetPhysicalDeviceProperties2(physical_device, &Vulkan.deviceProperties2);
 	}
-	l_free(available_extensions);
+	Vulkan.allocationCallbacks.pfnFree(NULL, available_extensions);
 	return VK_TRUE;
 }
 VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
@@ -2322,8 +2383,8 @@ VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device,
 	{
 		return VK_FALSE;
 	}
-	VkQueueFamilyProperties* queue_family_properties = l_calloc(queue_families_count, sizeof(VkQueueFamilyProperties));
-	VkBool32* queue_present_support = l_calloc(queue_families_count, sizeof(VkBool32));
+	VkQueueFamilyProperties* queue_family_properties = Vulkan.allocationCallbacks.pfnAllocation(NULL, queue_families_count * sizeof(VkQueueFamilyProperties), 4, 0);
+	VkBool32* queue_present_support = Vulkan.allocationCallbacks.pfnAllocation(NULL, queue_families_count * sizeof(VkBool32), 4, 0);
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, &queue_family_properties[0]);
 	uint32_t graphics_queue_family_index = UINT32_MAX;
 	uint32_t present_queue_family_index = UINT32_MAX;
@@ -2403,7 +2464,7 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
 	{
 		return VK_ERROR_INITIALIZATION_FAILED;
 	}
-	VkPhysicalDevice* physical_devices = l_calloc(num_devices, sizeof(VkPhysicalDevice));
+	VkPhysicalDevice* physical_devices = Vulkan.allocationCallbacks.pfnAllocation(NULL, num_devices * sizeof(VkPhysicalDevice), 4, 0);
 	if (VK_CHECK(vkEnumeratePhysicalDevices(vkInstance, &num_devices, &physical_devices[0])) != VK_SUCCESS)
 	{
 		return VK_ERROR_INITIALIZATION_FAILED;
@@ -2456,9 +2517,9 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 	{
 		if (Vulkan.availableExtensions != NULL)
 		{
-			l_free(Vulkan.availableExtensions);
+			Vulkan.allocationCallbacks.pfnFree(NULL, Vulkan.availableExtensions);
 		}
-		Vulkan.availableExtensions = malloc(sizeof(VkExtensionProperties) * Vulkan.availableExtensionCount);
+		Vulkan.availableExtensions = Vulkan.allocationCallbacks.pfnAllocation(NULL, sizeof(VkExtensionProperties) * Vulkan.availableExtensionCount, 4, 0);
 		err = vkEnumerateDeviceExtensionProperties(Vulkan.physicalDevice, NULL, &Vulkan.availableExtensionCount,
 			Vulkan.availableExtensions);
 	}
@@ -2719,7 +2780,7 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 		}
 
 		// Create the Vulkan logical device
-		VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, NULL, &Vulkan.i.device));
+		VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, &Vulkan.allocationCallbacks, &Vulkan.i.device));
 		if (ret == VK_SUCCESS)
 		{
 			break;
@@ -2791,4 +2852,9 @@ int vkewGetQueueTransfertIndex(void)
 int vkewGetComputeIndex(void)
 {
 	return Vulkan.queueComputeIndex;
+}
+
+const VkAllocationCallbacks* vkewGetAllocationCallbacks(void)
+{
+	return &Vulkan.allocationCallbacks;
 }

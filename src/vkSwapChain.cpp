@@ -334,18 +334,18 @@ std::shared_ptr<SwapChain> SwapChain::Create(
         }
     }
     // Attempt to create the swapchain
-    VkResult result = vkCreateSwapchainKHR(device, &swap_chain_create_info, nullptr, &ret->Value);
+    VkResult result = vkCreateSwapchainKHR(device, &swap_chain_create_info, vkewGetAllocationCallbacks(), &ret->Value);
     if (result != VK_SUCCESS && supportsExclusiveFullscreen)
     {
         // Retry without fullscreen exclusive if the first attempt failed
         swap_chain_create_info.pNext = nullptr;
-        result = vkCreateSwapchainKHR(device, &swap_chain_create_info, nullptr, &ret->Value);
+        result = vkCreateSwapchainKHR(device, &swap_chain_create_info, vkewGetAllocationCallbacks(), &ret->Value);
     }
 #endif
     if (ret->Value == VK_NULL_HANDLE)
     {
         if (VK_CHECK(
-                vkCreateSwapchainKHR(device, &swap_chain_create_info, NULL, &ret->Value)) !=
+                vkCreateSwapchainKHR(device, &swap_chain_create_info, vkewGetAllocationCallbacks(), &ret->Value)) !=
             VK_SUCCESS)
         {
             return nullptr;
@@ -353,7 +353,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
     }
     if (old_swap_chain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(device, old_swap_chain, nullptr);
+        vkDestroySwapchainKHR(device, old_swap_chain, vkewGetAllocationCallbacks());
     }
     ret->Format = desired_format.format;
     uint32_t image_count = 0;
@@ -395,7 +395,7 @@ std::shared_ptr<SwapChain> SwapChain::Create(
                 1 // uint32_t                       layerCount
             }
         };
-        vkCreateImageView(device, &image_view_create_info, nullptr, &ret->ImageViews[i]);
+        vkCreateImageView(device, &image_view_create_info, vkewGetAllocationCallbacks(), &ret->ImageViews[i]);
     }
     delete[] images;
     ret->Extent = desired_extent;
@@ -408,13 +408,13 @@ SwapChain::~SwapChain()
 {    
     for (auto it : ImageViews)
     {
-        vkDestroyImageView(vkewGetDevice(), it, nullptr);
+        vkDestroyImageView(vkewGetDevice(), it, vkewGetAllocationCallbacks());
     }
     Images.clear();
     ImageViews.clear();
     if (Value)
     {
-        vkDestroySwapchainKHR(vkewGetDevice(), Value, nullptr);
+        vkDestroySwapchainKHR(vkewGetDevice(), Value, vkewGetAllocationCallbacks());
         Value = VK_NULL_HANDLE;
     }
 }
@@ -432,11 +432,13 @@ std::shared_ptr<Surface> Surface::Create(VkInstance instance, void* platformHand
     result = VK_CHECK(vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, NULL, &ret->Value));
 #elif defined(IS_PLATFORM_ANDROID)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
+    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.window = platformWindow;
     result = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &ret->Value);
 #elif defined (IS_PLATFORM_LINUX)
     VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
+    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.connection = platformHandle;               // provided by the platform code
     surfaceCreateInfo.window = platformWindow;                       // provided by the platform code
