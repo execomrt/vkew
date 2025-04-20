@@ -83,10 +83,11 @@
 static PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN;
 #endif
 #endif
+#include <stddef.h>
 #include "vkew.h"
 #include "vkewVendors.h"
 
-static void* vkewDefaultAlloc(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+static void* VKAPI_ATTR  vkewDefaultAlloc(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {
 	(void)pUserData;
 	(void)allocationScope;
@@ -96,7 +97,7 @@ static void* vkewDefaultAlloc(void* pUserData, size_t size, size_t alignment, Vk
 	return malloc(size);
 #endif
 }
-static void* vkewDefaultRealloc(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+static void* VKAPI_ATTR  vkewDefaultRealloc(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {
 	(void)pUserData;
 	(void)allocationScope;
@@ -106,7 +107,7 @@ static void* vkewDefaultRealloc(void* pUserData, void* pOriginal, size_t size, s
 	return realloc(pOriginal, size);
 #endif
 }
-static void vkewDefaultFree(void* pUserData, void* pMemory)
+static void VKAPI_ATTR  vkewDefaultFree(void* pUserData, void* pMemory)
 {
 	(void)pUserData;
 #ifdef _WIN32
@@ -115,11 +116,11 @@ static void vkewDefaultFree(void* pUserData, void* pMemory)
 	free(pMemory);
 #endif
 }
-static void vkewDefaultInternalAlloc(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+static void VKAPI_ATTR  vkewDefaultInternalAlloc(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
 
 }
-static void vkewDefaultInternalFree(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+static void VKAPI_ATTR  vkewDefaultInternalFree(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
 
 }
@@ -1848,64 +1849,62 @@ static VkBool32 vkewCheckLayerAvailabilty(const uint32_t check_count, const char
 static int InitValidationLayers(int enableValidation)
 {
 	if (!enableValidation)
-	{
-		return enableValidation;
+		return 0;
+
+	uint32_t layerCount = 0;
+	if (vkEnumerateInstanceLayerProperties(&layerCount, NULL) != VK_SUCCESS || layerCount == 0)
+		return 0;
+
+	VkLayerProperties* availableLayers = malloc(sizeof(VkLayerProperties) * layerCount);
+	if (!availableLayers)
+		return 0;
+
+	if (vkEnumerateInstanceLayerProperties(&layerCount, availableLayers) != VK_SUCCESS) {
+		free(availableLayers);
+		return 0;
 	}
-	// uint32_t instance_extension_count = 0;
-	uint32_t instance_layer_count = 0;
-	// uint32_t validation_layer_count = 0;
-	int validation_found;
-	static const char* instance_validation_layers_alt1[] = { "VK_LAYER_KHRONOS_validation" };
-	static const char* instance_validation_layers_alt2[] = { "VK_LAYER_LUNARG_standard_validation" };
-	static const char* instance_validation_layers_alt3[] = {
+
+	// Candidates to try in order
+	static const char* layerSet1[] = { "VK_LAYER_KHRONOS_validation" };
+	static const char* layerSet2[] = { "VK_LAYER_LUNARG_standard_validation" };
+	static const char* layerSet3[] = {
 		"VK_LAYER_GOOGLE_threading",
 		"VK_LAYER_LUNARG_parameter_validation",
 		"VK_LAYER_LUNARG_object_tracker",
 		"VK_LAYER_LUNARG_core_validation",
 		"VK_LAYER_GOOGLE_unique_objects"
 	};
-	VkResult err = vkEnumerateInstanceLayerProperties(&instance_layer_count, NULL);
-	const char** it = instance_validation_layers_alt1;
-	if (instance_layer_count > 0)
-	{
-		VkLayerProperties* instance_layers = (VkLayerProperties*)Vulkan.allocationCallbacks.pfnAllocation(NULL, sizeof(VkLayerProperties) * instance_layer_count, 4, 0);
-		err = vkEnumerateInstanceLayerProperties(&instance_layer_count, instance_layers);
-		validation_found = vkewCheckLayerAvailabilty(ARRAY_SIZE(instance_validation_layers_alt1), it,
-			instance_layer_count, instance_layers);
-		if (validation_found)
-		{
-			Vulkan.validationLayerCount = ARRAY_SIZE(instance_validation_layers_alt1);
-			Vulkan.validationLayerNames[0] = instance_validation_layers_alt1[0];
-		}
-		else
-		{
-			validation_found = vkewCheckLayerAvailabilty(ARRAY_SIZE(instance_validation_layers_alt2), it,
-				instance_layer_count, instance_layers);
-			if (validation_found)
-			{
-				Vulkan.validationLayerCount = ARRAY_SIZE(instance_validation_layers_alt2);
-				Vulkan.validationLayerNames[0] = instance_validation_layers_alt2[0];
-			}
-			else
-			{
-				// use alternative set of validation layers
-				it = instance_validation_layers_alt3;
-				Vulkan.validationLayerCount = ARRAY_SIZE(instance_validation_layers_alt3);
-				validation_found = vkewCheckLayerAvailabilty(ARRAY_SIZE(instance_validation_layers_alt3), it,
-					instance_layer_count, instance_layers);
-				if (validation_found)
-				{
-					for (int32_t i = 0; i < Vulkan.validationLayerCount; i++)
-					{
-						Vulkan.validationLayerNames[i] = it[i];
-					}
-				}
-			}
-		}
-		Vulkan.allocationCallbacks.pfnFree(NULL, instance_layers);
-		return validation_found;
+
+	const char** chosenSet = NULL;
+	int chosenCount = 0;
+
+	// Try each set in order
+	if (vkewCheckLayerAvailabilty(ARRAY_SIZE(layerSet1), layerSet1, layerCount, availableLayers)) {
+		chosenSet = layerSet1;
+		chosenCount = ARRAY_SIZE(layerSet1);
 	}
-	return 0;
+	else if (vkewCheckLayerAvailabilty(ARRAY_SIZE(layerSet2), layerSet2, layerCount, availableLayers)) {
+		chosenSet = layerSet2;
+		chosenCount = ARRAY_SIZE(layerSet2);
+	}
+	else if (vkewCheckLayerAvailabilty(ARRAY_SIZE(layerSet3), layerSet3, layerCount, availableLayers)) {
+		chosenSet = layerSet3;
+		chosenCount = ARRAY_SIZE(layerSet3);
+	}
+
+	// Copy the final result into Vulkan struct
+	if (chosenSet) {
+		Vulkan.validationLayerCount = chosenCount;
+		for (int i = 0; i < chosenCount; ++i) {
+			Vulkan.validationLayerNames[i] = chosenSet[i];
+		}
+	}
+	else {
+		Vulkan.validationLayerCount = 0;
+	}
+
+	free(availableLayers);
+	return Vulkan.validationLayerCount > 0;
 }
 static void InitExtensionsLayers(int enableValidation)
 {
@@ -2185,6 +2184,7 @@ int vkewInit(const VKEWSettings* lpArgs)
 	applicationInfo.pEngineName = Vulkan.settings.pEngineName;
 	applicationInfo.engineVersion = Vulkan.settings.engineVersion;
 	applicationInfo.apiVersion = Vulkan.settings.apiVersion;
+
 	if (!Vulkan.settings.pAllocator)
 	{
 		Vulkan.allocationCallbacks.pfnAllocation = vkewDefaultAlloc;
@@ -2352,9 +2352,10 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 	{
 		Vulkan.accelerationStructureFeatures.sType =
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-		
-		Vulkan.deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		Vulkan.deviceProperties2.pNext = &Vulkan.accelerationStructureFeatures;
+
+
+		Vulkan.deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		Vulkan.deviceProperties2.pNext = NULL;
 		vkGetPhysicalDeviceProperties2(physical_device, &Vulkan.deviceProperties2);
 	}
 	if (VKEW_KHR_ray_tracing_pipeline)
@@ -2576,9 +2577,14 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
 	}
-	if (VKEW_KHR_present_wait)
+	if (VKEW_KHR_present_id)
 	{
-		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PRESENT_WAIT_EXTENSION_NAME;
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PRESENT_ID_EXTENSION_NAME;
+
+		if (VKEW_KHR_present_wait)
+		{
+			ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_PRESENT_WAIT_EXTENSION_NAME;
+		}
 	}
 	if (Vulkan.enableRaytracing)
 	{
