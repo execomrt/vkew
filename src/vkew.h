@@ -87,8 +87,7 @@ extern "C" {
 	extern uint32_t vkewGetTransfertQueueFamilyIndex(void);
 	extern int vkewSupportsFullscreenExclusive(void);
 	extern void vkewGetPropertiesAndFeatures(VkPhysicalDeviceProperties* p, VkPhysicalDeviceFeatures* f);
-	extern void vkewGetRaytracingPropertiesAndFeatures(VkPhysicalDeviceRayTracingPipelinePropertiesKHR* p, VkPhysicalDeviceAccelerationStructureFeaturesKHR* f);
-	extern VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device);
+	
 	extern VkBool32 vkewCheckPhysicalDeviceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR presentation_surface, uint32_t* selected_graphics_queue_family_index, uint32_t* selected_present_queue_family_index, uint32_t* selected_transfer_queue_family_index, uint32_t* selected_compute_queue_family_index);
 	extern VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice, uint32_t selected_graphics_queue_family_index, uint32_t selected_present_queue_family_index, uint32_t selected_transfert_queue_family_index, uint32_t selected_compute_queue_family_index);
 #if defined VK_NO_PROTOTYPES
@@ -284,6 +283,12 @@ extern "C" {
 	extern PFN_vkQueueSubmit2KHR vkQueueSubmit2KHR;
 #endif
 #endif
+
+
+#ifdef VK_KHR_multiview
+	extern VkBool32 VKEW_KHR_multiview;
+#endif
+
 #ifdef VK_KHR_get_surface_capabilities2
 	extern VkBool32 VKEW_KHR_get_surface_capabilities2;
 #if defined VK_NO_PROTOTYPES
@@ -454,6 +459,12 @@ extern "C" {
 #endif 
 #ifdef VK_KHR_buffer_device_address
 	extern VkBool32 VKEW_KHR_buffer_device_address;
+#endif
+#ifdef VK_KHR_device_group
+	extern VkBool32 VKEW_KHR_device_group;
+	extern PFN_vkGetDeviceGroupPeerMemoryFeaturesKHR vkGetDeviceGroupPeerMemoryFeaturesKHR;
+	extern PFN_vkCmdSetDeviceMaskKHR vkCmdSetDeviceMaskKHR;
+	extern PFN_vkCmdDispatchBaseKHR vkCmdDispatchBaseKHR;
 #endif
 #ifdef VK_KHR_portability_enumeration
 	extern VkBool32 VKEW_KHR_portability_enumeration;
