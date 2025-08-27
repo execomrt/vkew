@@ -71,6 +71,7 @@ extern "C" {
 	extern VkPhysicalDevice vkewGetPhysicalDevice(void);
 	extern VkResult vkewCheckExtensionAvailability(const char* extension_name);
 	extern VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex);
+	extern VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device);
 	extern const char* vkewVkObjectTypeToString(VkObjectType input_value);
 	extern const char* vkewVkColorSpaceToString(VkColorSpaceKHR input_value);
 	extern const char* vkewVkFormatToString(VkFormat input_value);
@@ -172,6 +173,7 @@ extern "C" {
 	extern PFN_vkDestroyPipelineCache vkDestroyPipelineCache;
 	extern PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;
 	extern PFN_vkDestroyQueryPool vkDestroyQueryPool;
+	extern PFN_vkResetQueryPool vkResetQueryPool;
 	extern PFN_vkDestroyRenderPass vkDestroyRenderPass;
 	extern PFN_vkDestroySampler vkDestroySampler;
 	extern PFN_vkDestroySemaphore vkDestroySemaphore;
