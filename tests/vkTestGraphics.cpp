@@ -268,6 +268,12 @@ void CreateGraphicsPipeline(VulkanResources& resources)
     viewport.y = 0.0f;
     viewport.width = (float)resources.swapChain->Extent.width;
     viewport.height = (float)resources.swapChain->Extent.height;
+    if (VKEW_KHR_maintenance1)
+    {
+		viewport.y = (float)resources.swapChain->Extent.height;
+		viewport.height = -(float)resources.swapChain->Extent.height;
+    }
+
   
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
@@ -290,7 +296,7 @@ void CreateGraphicsPipeline(VulkanResources& resources)
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 

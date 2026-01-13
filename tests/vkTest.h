@@ -69,13 +69,49 @@ struct VulkanResources {
 
     void Cleanup()
     {
-        for (size_t i = 0; i < inFlightFences.size(); ++i) {
-            vkDestroyFence(device, inFlightFences[i], nullptr);
+        // Wait for device to be idle before cleanup
+        if (device != VK_NULL_HANDLE) {
+            vkDeviceWaitIdle(device);
         }
+
+        // Free command buffers before destroying the pool
+        if (commandPool != VK_NULL_HANDLE && !commandBuffers.empty()) {
+            vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+            commandBuffers.clear();
+        }
+
+        // Free one-time command buffer if allocated
+        if (commandPool != VK_NULL_HANDLE && oneTimeCommandBuffer != VK_NULL_HANDLE) {
+            vkFreeCommandBuffers(device, commandPool, 1, &oneTimeCommandBuffer);
+            oneTimeCommandBuffer = VK_NULL_HANDLE;
+        }
+
+        // Destroy command pool
+        if (commandPool != VK_NULL_HANDLE) {
+            vkDestroyCommandPool(device, commandPool, nullptr);
+            commandPool = VK_NULL_HANDLE;
+        }
+
+        // Destroy fences
+        for (size_t i = 0; i < inFlightFences.size(); ++i) {
+            if (inFlightFences[i] != VK_NULL_HANDLE) {
+                vkDestroyFence(device, inFlightFences[i], nullptr);
+            }
+        }
+        inFlightFences.clear();
+        imagesInFlight.clear();
+
+        // Clear semaphores (SemaphoreRef should handle destruction)
         imageAvailableSemaphores.clear();
         renderFinishedSemaphores.clear();
+        renderFinishedPerImage.clear();
 
+        // Cleanup application context
         appContext.Cleanup(device);
+
+        // Clear swap chain and surface
+        swapChain.reset();
+        surface.reset();
     }
 };
 

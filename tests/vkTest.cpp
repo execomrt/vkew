@@ -166,13 +166,6 @@ void CreateSwapChainVulkan(void* platformWindow, void* platformInstance)
     
 }
 
-void DestroySwapChainVulkan()
-{
-    g_Resources.swapChain = nullptr;
-    g_Resources.surface = nullptr;
-    vkDestroyCommandPool(g_Resources.device, g_Resources.commandPool, nullptr);
-}
-
 void RenderFrameVulkan(VkCommandBuffer cmd)
 {
     VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -405,7 +398,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     RunMessageLoop();
 
-    DestroySwapChainVulkan();
+    
     CleanupVulkan();
 
     return 0;
