@@ -106,65 +106,94 @@ Debug services, and enum to string converters are included.
 
 ## Supported Vulkan Extensions in VKEW
 
-The Vulkan Extension Wrangler (VKEW) automatically detects and enables supported extensions. Each extension has a corresponding boolean flag (`VKEW_<EXTENSION_NAME>`) that indicates whether the extension is available.
+VKEW enumerates instance/device extensions at runtime and exposes a boolean flag per supported extension (`VKEW_<EXTENSION_NAME>`). Extensions are enabled only when available on the current driver / platform.
 
-### ✅ Core Vulkan Extensions
+### Instance extensions (enabled during `vkCreateInstance`)
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2` | Required for querying additional device properties. |
-| `VK_KHR_DRIVER_PROPERTIES` | Provides detailed information about the Vulkan driver. |
-| `VK_KHR_MAINTENANCE_1` | Fixes descriptor set binding and adds other minor improvements. |
-| `VK_KHR_MAINTENANCE_2` | Standardizes image block matching and other optimizations. |
-| `VK_KHR_MAINTENANCE_3` | Introduces descriptor indexing. |
-| `VK_KHR_MAINTENANCE_4` | Extends limits and improves resource creation. |
-| `VK_KHR_MAINTENANCE_5` | Enables dynamic rendering, improves image transitions. |
+| Extension | Purpose |
+| --- | --- |
+| `VK_KHR_surface` | Base surface extension required for presentation. |
+| `VK_KHR_win32_surface` / `VK_KHR_xlib_surface` / `VK_KHR_xcb_surface` / `VK_KHR_wayland_surface` / `VK_KHR_android_surface` / `VK_MVK_macos_surface` / `VK_MVK_ios_surface` | Platform surface integration (selected by compile-time platform macro). |
+| `VK_KHR_get_physical_device_properties2` | Required for querying extended physical-device properties/features. |
+| `VK_KHR_get_surface_capabilities2` | Extended surface capability queries (used when present). |
+| `VK_KHR_driver_properties` | Extended driver/vendor properties (used when present). |
+| `VK_EXT_debug_utils` | Modern debug messenger (enabled when validation is enabled). |
+| `VK_EXT_debug_report` | Legacy debug callbacks (enabled when validation is enabled and available). |
+| `VK_EXT_debug_marker` | Debug object markers/names (if available). |
 
-### 🖼 Swap Chain & Rendering Extensions
+### Device extensions
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_KHR_SWAPCHAIN` | Enables swap chains for rendering to window surfaces. |
-| `VK_KHR_IMAGE_FORMAT_LIST` | Optimizes swap chain image formats. |
-| `VK_KHR_CREATE_RENDERPASS_2` | Improves render pass creation. |
-| `VK_KHR_DYNAMIC_RENDERING` | Allows rendering without predefined render passes. |
-| `VK_KHR_DEPTH_STENCIL_RESOLVE` | Improves multisampling depth-stencil resolve. |
+`VK_KHR_swapchain` is required. The following optional extensions are detected and exposed as flags when available:
 
-### 🚀 Synchronization & Performance Extensions
+#### Core / maintenance
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_KHR_SYNCHRONIZATION_2` | Provides enhanced synchronization primitives. |
-| `VK_KHR_TIMELINE_SEMAPHORE` | Enables timeline semaphores for better GPU-CPU synchronization. |
-| `VK_KHR_SHADER_CLOCK` | Allows shaders to access a high-resolution clock. |
-| `VK_KHR_SHADER_FLOAT16_INT8` | Enables float16 and int8 arithmetic in shaders. |
+| Extension | Purpose |
+| --- | --- |
+| `VK_KHR_maintenance1` | Misc. API/behavior fixes. |
+| `VK_KHR_maintenance2` | Misc. API/behavior fixes. |
+| `VK_KHR_maintenance3` | Misc. API/behavior fixes (descriptor-related). |
+| `VK_KHR_maintenance4` | Limits and feature refinements. |
+| `VK_KHR_maintenance5` | Additional limits/behavior refinements. |
+| `VK_KHR_portability_enumeration` | Portability-enumeration support (notably relevant on some platforms). |
+| `VK_KHR_device_group` | Multi-device / device-group support. |
+| `VK_KHR_multiview` | Multiview rendering support. |
 
-### 🛠 Advanced Features & Optimization
+#### Swapchain, presentation, and formats
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_KHR_BUFFER_DEVICE_ADDRESS` | Enables direct access to buffer device addresses. |
-| `VK_EXT_DESCRIPTOR_INDEXING` | Supports bindless resources and large descriptor sets. |
-| `VK_KHR_PUSH_DESCRIPTOR` | Allows directly pushing descriptors to shaders. |
-| `VK_KHR_DEFERRED_HOST_OPERATIONS` | Optimizes host-side Vulkan operations. |
+| Extension | Purpose |
+| --- | --- |
+| `VK_KHR_swapchain` | Swapchain creation and presentation (**required**). |
+| `VK_KHR_display` | Display / direct-to-display support (when exposed by the driver). |
+| `VK_EXT_swapchain_colorspace` | Additional swapchain color spaces (HDR / wide-gamut related). |
+| `VK_KHR_image_format_list` | Image format lists (commonly used with swapchains and views). |
+| `VK_KHR_create_renderpass2` | RenderPass2 creation API. |
+| `VK_KHR_dynamic_rendering` | Dynamic rendering (rendering without predefined render passes). |
+| `VK_KHR_present_id` | Present IDs for tracking presentation. |
+| `VK_KHR_present_wait` | Present-wait support. |
 
-### 🔦 Debugging & Developer Tools
+#### Synchronization and scheduling
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_EXT_DEBUG_MARKER` | Allows naming Vulkan objects (useful for debugging). |
-| `VK_EXT_ROBUSTNESS_2` | Adds stricter memory safety checks for buffers/images. |
+| Extension | Purpose |
+| --- | --- |
+| `VK_KHR_synchronization2` | Synchronization2 structures and APIs. |
+| `VK_KHR_timeline_semaphore` | Timeline semaphores. |
 
-### 🔦 Ray Tracing Support (Optional)
+#### Descriptors, resource access, and memory
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_KHR_RAY_TRACING_PIPELINE` | Enables ray tracing pipeline support. |
-| `VK_KHR_RAY_QUERY` | Allows ray tracing from any shader stage. |
-| `VK_KHR_ACCELERATION_STRUCTURE` | Provides ray tracing acceleration structure support. |
+| Extension | Purpose |
+| --- | --- |
+| `VK_EXT_descriptor_indexing` | Descriptor indexing / bindless-style patterns. |
+| `VK_EXT_descriptor_buffer` | Descriptor buffer model. |
+| `VK_KHR_push_descriptor` | Push descriptors. |
+| `VK_KHR_buffer_device_address` | Buffer device address support. |
+| `VK_KHR_deferred_host_operations` | Host-side deferred operations (often used by RT features). |
+| `VK_KHR_separate_depth_stencil_layouts` | Separate depth/stencil layouts for transitions. |
+| `VK_EXT_memory_priority` | Memory priority (when supported by the driver). |
 
-### 🎮 Platform-Specific Extensions
+#### Pipeline and dynamic state
 
-| Extension | Feature |
-| --------- | ------- |
-| `VK_EXT_FULL_SCREEN_EXCLUSIVE` | Enables exclusive full-screen support (Windows only). |
+| Extension | Purpose |
+| --- | --- |
+| `VK_EXT_extended_dynamic_state` | Extended dynamic state (v1). |
+| `VK_EXT_extended_dynamic_state2` | Extended dynamic state (v2). |
+| `VK_EXT_extended_dynamic_state3` | Extended dynamic state (v3). |
+| `VK_EXT_pipeline_creation_cache_control` | Pipeline creation cache-control hints. |
+| `VK_EXT_subgroup_size_control` | Subgroup size controls. |
+
+#### Ray tracing (optional)
+
+| Extension | Purpose |
+| --- | --- |
+| `VK_KHR_acceleration_structure` | Acceleration structures. |
+| `VK_KHR_ray_tracing_pipeline` | Ray tracing pipeline. |
+| `VK_KHR_ray_query` | Ray queries from any shader stage. |
+
+#### Shader and debug utilities
+
+| Extension | Purpose |
+| --- | --- |
+| `VK_EXT_shader_demote_to_helper_invocation` | Shader demote-to-helper-invocation. |
+| `VK_KHR_shader_clock` | Shader clock access. |
+| `VK_KHR_shader_float16_int8` | Float16 / Int8 arithmetic. |
+| `VK_EXT_robustness2` | Additional robustness guarantees (driver dependent). |
+
