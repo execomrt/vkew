@@ -242,6 +242,22 @@ extern "C" {
 #ifdef VK_EXT_hdr_metadata
 	extern VkBool32 VKEW_EXT_hdr_metadata;
 #endif
+
+#ifdef VK_EXT_descriptor_buffer
+    extern VkBool32 VKEW_EXT_descriptor_buffer;
+	extern PFN_vkGetDescriptorSetLayoutSizeEXT vkGetDescriptorSetLayoutSizeEXT;
+	extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT vkGetDescriptorSetLayoutBindingOffsetEXT;
+	extern PFN_vkGetDescriptorEXT vkGetDescriptorEXT;
+	extern PFN_vkCmdBindDescriptorBuffersEXT vkCmdBindDescriptorBuffersEXT;
+	extern PFN_vkCmdSetDescriptorBufferOffsetsEXT vkCmdSetDescriptorBufferOffsetsEXT;
+	extern PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
+	extern PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT vkGetBufferOpaqueCaptureDescriptorDataEXT;
+	extern PFN_vkGetImageOpaqueCaptureDescriptorDataEXT vkGetImageOpaqueCaptureDescriptorDataEXT;
+	extern PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT vkGetImageViewOpaqueCaptureDescriptorDataEXT;
+	extern PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT vkGetSamplerOpaqueCaptureDescriptorDataEXT;
+	extern PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
+
+#endif
 #ifdef VK_KHR_swapchain
 	extern VkBool32 VKEW_KHR_swapchain;
 	extern PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR;
@@ -506,6 +522,21 @@ extern "C" {
 #endif
 #ifdef VK_EXT_subgroup_size_control 
 	extern VkBool32 VKEW_EXT_subgroup_size_control;
+#endif
+#ifdef VK_EXT_extended_dynamic_state	
+	extern VkBool32 VKEW_EXT_extended_dynamic_state;
+	extern PFN_vkCmdSetCullModeEXT vkCmdSetCullModeEXT;
+	extern PFN_vkCmdSetFrontFaceEXT vkCmdSetFrontFaceEXT;
+	extern PFN_vkCmdSetPrimitiveTopologyEXT vkCmdSetPrimitiveTopologyEXT;
+	extern PFN_vkCmdSetViewportWithCountEXT vkCmdSetViewportWithCountEXT;
+	extern PFN_vkCmdSetScissorWithCountEXT vkCmdSetScissorWithCountEXT;
+	extern PFN_vkCmdBindVertexBuffers2EXT vkCmdBindVertexBuffers2EXT;
+	extern PFN_vkCmdSetDepthTestEnableEXT vkCmdSetDepthTestEnableEXT;
+	extern PFN_vkCmdSetDepthWriteEnableEXT vkCmdSetDepthWriteEnableEXT;
+	extern PFN_vkCmdSetDepthCompareOpEXT vkCmdSetDepthCompareOpEXT;
+	extern PFN_vkCmdSetDepthBoundsTestEnableEXT vkCmdSetDepthBoundsTestEnableEXT;
+	extern PFN_vkCmdSetStencilTestEnableEXT vkCmdSetStencilTestEnableEXT;
+	extern PFN_vkCmdSetStencilOpEXT vkCmdSetStencilOpEXT;
 #endif
 	extern VkBool32 VKEW_VERSION_1_1;
 	extern VkBool32 VKEW_VERSION_1_2;
