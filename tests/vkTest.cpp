@@ -5,6 +5,7 @@
 #include "vkew.h"
 #include <iostream>
 #include <cstring>
+#include <cstdarg>
 #include <vector>
 #include <filesystem>
 
@@ -14,7 +15,11 @@
     } \
 }
 
+#ifdef NDEBUG
+static VkBool32 useValidationLayer = VK_FALSE;
+#else
 static VkBool32 useValidationLayer = VK_TRUE;
+#endif
 #include "vkTest.h"
 
 static VulkanResources g_Resources;
@@ -39,6 +44,10 @@ void ParseCommandLineArgs(int argc, const char* argv[])
         if (std::strcmp(argv[i], "--validation") == 0)
         {
             useValidationLayer = VK_TRUE;
+        }
+        else if (std::strcmp(argv[i], "--no-validation") == 0)
+        {
+            useValidationLayer = VK_FALSE;
         }
     }
 }
@@ -70,6 +79,12 @@ void CreateCommandBufferVulkan()
 
 void CreateSyncObjects()
 {
+    // Called again on swapchain recreation: release the previous fences first
+    for (VkFence f : g_Resources.inFlightFences)
+        if (f != VK_NULL_HANDLE)
+            vkDestroyFence(g_Resources.device, f, nullptr);
+    g_Resources.inFlightFences.clear();
+
     g_Resources.inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -128,14 +143,9 @@ void OnResizeSwapChainVulkan(void* window, const VkExtent2D* newExtent)
     {
         vkDeviceWaitIdle(g_Resources.device);
 
-        // Destroy old framebuffers
-        for (auto fb : g_Resources.appContext.framebuffers) {
-            if (fb != VK_NULL_HANDLE) {
-                vkDestroyFramebuffer(g_Resources.device, fb, nullptr);
-            }
-        }
-        g_Resources.appContext.framebuffers.clear();
-
+        // Release framebuffers, pipeline, render pass, shaders and vertex buffer;
+        // InitializeGraphicsResources() recreates them for the new swapchain.
+        g_Resources.appContext.Cleanup(g_Resources.device);
     }
     // Recreate swapchain
     g_Resources.extent = *newExtent;
@@ -208,11 +218,15 @@ void PresentFrameVulkan(VkSemaphore renderFinishedSemaphore)
 
     VkResult result = vkQueuePresentKHR(g_Resources.graphicsQueue, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        // Handle swapchain recreation if needed
+        g_Resources.dirtySwapChain = true; // recreated at the start of the next frame
     }
 }
 void DrawFrameVulkan()
 {
+    // Nothing to render into while minimized (zero-sized client area)
+    if (g_Resources.extent.width == 0 || g_Resources.extent.height == 0)
+        return;
+
     if (g_Resources.dirtySwapChain)
     {
         OnResizeSwapChainVulkan(g_Resources.window, &g_Resources.extent);
@@ -228,13 +242,21 @@ void DrawFrameVulkan()
     uint32_t imageIndex = 0;
     VkSemaphore imageAvailable = g_Resources.imageAvailableSemaphores[currentFrame]->value;
 
-    VK_CHECK(vkAcquireNextImageKHR(
+    VkResult acquire = vkAcquireNextImageKHR(
         g_Resources.device,
         g_Resources.swapChain->Value,
         UINT64_MAX,
         imageAvailable,
         VK_NULL_HANDLE,
-        &imageIndex));
+        &imageIndex);
+    if (acquire == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        // Fence is still signaled (not reset yet) and the semaphore was not consumed: retry next frame
+        g_Resources.dirtySwapChain = true;
+        return;
+    }
+    if (acquire != VK_SUCCESS && acquire != VK_SUBOPTIMAL_KHR)
+        VK_CHECK(acquire);
 
     g_Resources.imageIndex = imageIndex;
 
@@ -283,11 +305,13 @@ void LogBreakOnError(void)
 
 void LogMessageVulkan(VKEWMessageLevel level, const char* pszFormat, ...)
 {
-    va_list args;
+    va_list args, argsCopy;
     va_start(args, pszFormat);
+    va_copy(argsCopy, args); // a va_list can only be consumed once
     vprintf(pszFormat, args);
     char buffer[8192];
-    vsnprintf(buffer, sizeof(buffer), pszFormat, args);
+    vsnprintf(buffer, sizeof(buffer), pszFormat, argsCopy);
+    va_end(argsCopy);
 #ifdef IS_PLATFORM_WIN
     lstrcatA(buffer, "\n");
     OutputDebugStringA(buffer);
@@ -307,10 +331,12 @@ void InitializeVulkan()
     settings.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     settings.apiVersion = VK_MAKE_VERSION(1, 2, 0);
     settings.enableValidation = useValidationLayer;
+    // Optional features are opt-in; this demo uses a traditional render pass and needs none of them.
     settings.enableRaytracing = VK_FALSE;
-    settings.enableDynamicRendering = VK_FALSE; // Using traditional render pass
-
-    
+    settings.enableMeshShading = VK_FALSE;
+    settings.enableDynamicRendering = VK_FALSE;
+    settings.enableDescriptorHeap = VK_FALSE;
+    settings.enableDeviceFault = VK_FALSE;
 
     if (vkewInit(&settings) != VK_SUCCESS)
     {

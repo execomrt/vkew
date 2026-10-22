@@ -118,8 +118,8 @@ if(VKEW_ENABLE_TESTS)
                 -o "${SPIRV_OUTPUT_DIR}/test_ps.spv"
             COMMAND ${CMAKE_COMMAND} -E touch ${SPIRV_STAMP_FILE}
             DEPENDS 
-                ${CMAKE_CURRENT_SOURCE_DIR}/tests/shaders/test_vs.vert
-                ${CMAKE_CURRENT_SOURCE_DIR}/tests/shaders/test_ps.frag
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/shaders/triangle_vs.vert
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/shaders/triangle_ps.frag
             COMMENT "Compiling GLSL shaders to SPIR-V in ${SPIRV_OUTPUT_DIR}"
             VERBATIM
         )
@@ -129,6 +129,42 @@ if(VKEW_ENABLE_TESTS)
         )
         
         add_dependencies(vkew_test compile_vkew_spirv_shaders)
+    endif()
+
+    # --------------------------------------------------------
+    # vkew_devicelost: provoke a GPU fault and read it back with VK_KHR_device_fault (Windows only for now)
+    # --------------------------------------------------------
+    if (WIN32)
+        add_executable(vkew_devicelost)
+        set_target_properties(vkew_devicelost PROPERTIES FOLDER "vkew_tests")
+        target_sources(vkew_devicelost PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/vkDeviceLost.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/vkDeviceFault.h
+        )
+        target_include_directories(vkew_devicelost PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        )
+        target_link_libraries(vkew_devicelost PRIVATE vkew::vkew user32)
+        target_compile_definitions(vkew_devicelost PRIVATE IS_PLATFORM_WIN=1)
+        if (Vulkan_FOUND)
+            target_link_libraries(vkew_devicelost PRIVATE Vulkan::Vulkan)
+        endif()
+
+        if (GLSLC_EXECUTABLE)
+            set(CRASH_SPV "$<TARGET_FILE_DIR:vkew_devicelost>/shaders/spirv/device_lost_crash.spv")
+            add_custom_command(
+                TARGET vkew_devicelost POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:vkew_devicelost>/shaders/spirv"
+                COMMAND ${GLSLC_EXECUTABLE} --target-env=vulkan1.3
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/shaders/device_lost_crash.comp"
+                    -o "${CRASH_SPV}"
+                COMMENT "Compiling device_lost_crash.comp to SPIR-V"
+                VERBATIM
+            )
+        else()
+            message(WARNING "glslc not found: vkew_devicelost needs shaders/spirv/device_lost_crash.spv built manually")
+        endif()
     endif()
 
 endif()

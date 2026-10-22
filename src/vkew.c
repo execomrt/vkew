@@ -101,9 +101,12 @@ static PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN;
 #endif
 #endif
 
+
 // Project-specific includes
 #include "vkew.h"
 #include "vkewVendors.h"
+
+// Disable until we implement these
 
 static void* VKAPI_ATTR  vkewDefaultAlloc(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {
@@ -136,16 +139,18 @@ static void VKAPI_ATTR  vkewDefaultFree(void* pUserData, void* pMemory)
 }
 static void VKAPI_ATTR  vkewDefaultInternalAlloc(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
-
+	(void)pUserData; (void)size; (void)allocationType; (void)allocationScope;
 }
 static void VKAPI_ATTR  vkewDefaultInternalFree(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
+	(void)pUserData; (void)size; (void)allocationType; (void)allocationScope;
 
 }
 
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define VKEW_CASE_STR(x) case x: return #x
-#define VKEW_MAX_EXTENSIONS 128
+#define VKEW_MAX_EXTENSIONS 256
 #define VKEW_MAX_LAYERS 64
 
 static const char* VKEW_DEFAULT_CASE_STR(const char* type, int value)
@@ -680,7 +685,7 @@ static PFN_vkVoidFunction vkewGetDeviceProcAddr(VkDevice device, const char* nam
 }
 static PFN_vkVoidFunction vkewGetInterfaceProcAddr(VkInterface value, const char* name)
 {
-	void* ret = value.device ? vkewGetDeviceProcAddr(value.device, name) : vkGetInstanceProcAddr(value.instance, name);
+	PFN_vkVoidFunction ret = value.device ? vkewGetDeviceProcAddr(value.device, name) : vkGetInstanceProcAddr(value.instance, name);
 	if (ret == NULL && value.device != VK_NULL_HANDLE)
 	{
 #ifdef _DEBUG
@@ -696,7 +701,7 @@ static PFN_vkVoidFunction vkewGetInterfaceProcAddr(VkInterface value, const char
 static void* vkewGetProcAddress(const char* name)
 {
 #ifdef WIN32
-	return GetProcAddress(Vulkan.ctx, name);
+	return (void*)GetProcAddress(Vulkan.ctx, name);
 #elif defined UNIX || defined VK_USE_PLATFORM_VI_NN
 	return dlsym(Vulkan.ctx, (const char*)name);
 #else
@@ -761,6 +766,8 @@ VKEW_GET_FUNCTION(vkCmdSetScissor);
 VKEW_GET_FUNCTION(vkCmdSetViewport);
 VKEW_GET_FUNCTION(vkCmdWriteTimestamp);
 VKEW_GET_FUNCTION(vkCreateBuffer);
+VKEW_GET_FUNCTION(vkCmdFillBuffer);
+VKEW_GET_FUNCTION(vkCmdUpdateBuffer);
 VKEW_GET_FUNCTION(vkCreateBufferView);
 VKEW_GET_FUNCTION(vkCreateCommandPool);
 VKEW_GET_FUNCTION(vkCreateComputePipelines);
@@ -825,6 +832,7 @@ VKEW_GET_FUNCTION(vkGetImageSubresourceLayout);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceFeatures);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceFeatures2);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceFormatProperties);
+VKEW_GET_FUNCTION(vkGetPhysicalDeviceImageFormatProperties);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceMemoryProperties);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceMemoryProperties2);
 VKEW_GET_FUNCTION(vkGetPhysicalDeviceProperties);
@@ -900,6 +908,7 @@ PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTagEXT;
 VkBool32 VKEW_EXT_debug_marker;
 static int vkewInit_VK_EXT_debug_marker(VkInterface value)
 {
+	(void)value;
 	VKEW_GET_PROC(vkCmdDebugMarkerBeginEXT);
 	VKEW_GET_PROC(vkCmdDebugMarkerEndEXT);
 	VKEW_GET_PROC(vkCmdDebugMarkerInsertEXT);
@@ -920,6 +929,7 @@ PFN_vkGetPhysicalDeviceSurfaceFormats2KHR vkGetPhysicalDeviceSurfaceFormats2KHR;
 #endif
 static int vkewInit_VK_KHR_get_surface_capabilities2(VkInterface value)
 {
+	(void)value;
 	VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
 	VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceFormats2KHR);
 #if defined VK_NO_PROTOTYPES
@@ -1021,6 +1031,10 @@ static int vkewInit_VK_KHR_maintenance4(VkInterface value)
 VkBool32 VKEW_KHR_multiview;
 #endif
 
+#ifdef VK_EXT_mesh_shader
+VkBool32 VKEW_EXT_mesh_shader;
+#endif
+
 #ifdef VK_KHR_create_renderpass2
 VkBool32 VKEW_KHR_create_renderpass2;
 PFN_vkCreateRenderPass2KHR vkCreateRenderPass2KHR;
@@ -1047,6 +1061,7 @@ PFN_vkGetDeviceImageSubresourceLayoutKHR vkGetDeviceImageSubresourceLayoutKHR;
 PFN_vkGetImageSubresourceLayout2KHR vkGetImageSubresourceLayout2KHR;
 static int vkewInit_VK_KHR_maintenance5(VkInterface value)
 {
+	(void)value;
 	VKEW_GET_PROC(vkCmdBindIndexBuffer2KHR);
 	VKEW_GET_PROC(vkGetRenderingAreaGranularityKHR);
 	VKEW_GET_PROC(vkGetDeviceImageSubresourceLayoutKHR);
@@ -1111,6 +1126,10 @@ static int vkewInit_VK_KHR_acceleration_structure(VkInterface value)
 		vkGetDeviceAccelerationStructureCompatibilityKHR != NULL &&
 		vkGetAccelerationStructureBuildSizesKHR != NULL;
 }
+#endif
+
+#ifdef VK_NV_ray_tracing_linear_swept_spheres
+VkBool32 VKEW_NV_ray_tracing_linear_swept_spheres;
 #endif
 
 #ifdef VK_KHR_portability_enumeration
@@ -1185,17 +1204,73 @@ VkBool32 VKEW_KHR_pipeline_library;
 #endif
 #ifdef VK_KHR_ray_query
 VkBool32 VKEW_KHR_ray_query;
+static int vkewInit_VK_KHR_ray_query(VkInterface value)
+{
+	(void)value;
+	return VK_TRUE;
+}
+#endif
+
+#ifdef VK_EXT_mesh_shader
 PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
 PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirectEXT;
 PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCountEXT;
-static int vkewInit_VK_KHR_ray_query(VkInterface value)
+static int vkewInit_VK_EXT_mesh_shader(VkInterface value)
 {
-	VKEW_GET_PROC(vkCmdDrawMeshTasksEXT);
-	VKEW_GET_PROC(vkCmdDrawMeshTasksIndirectEXT);
-	VKEW_GET_PROC(vkCmdDrawMeshTasksIndirectCountEXT);
+    VKEW_GET_FUNCTION(vkCmdDrawMeshTasksEXT);
+    VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirectEXT);
+    VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirectCountEXT);
 	return vkCmdDrawMeshTasksEXT != NULL &&
 		vkCmdDrawMeshTasksIndirectEXT != NULL &&
 		vkCmdDrawMeshTasksIndirectCountEXT != NULL;
+}
+#endif
+
+#ifdef VK_KHR_shader_untyped_pointers
+VkBool32 VKEW_KHR_shader_untyped_pointers;
+#endif
+#ifdef VK_KHR_unified_image_layouts
+VkBool32 VKEW_KHR_unified_image_layouts;
+#endif
+#ifdef VK_KHR_device_address_commands
+VkBool32 VKEW_KHR_device_address_commands;
+PFN_vkCmdBindIndexBuffer3KHR vkCmdBindIndexBuffer3KHR;
+PFN_vkCmdBindVertexBuffers3KHR vkCmdBindVertexBuffers3KHR;
+PFN_vkCmdDrawIndirect2KHR vkCmdDrawIndirect2KHR;
+PFN_vkCmdDrawIndexedIndirect2KHR vkCmdDrawIndexedIndirect2KHR;
+PFN_vkCmdDispatchIndirect2KHR vkCmdDispatchIndirect2KHR;
+PFN_vkCmdCopyMemoryKHR vkCmdCopyMemoryKHR;
+PFN_vkCmdCopyMemoryToImageKHR vkCmdCopyMemoryToImageKHR;
+PFN_vkCmdCopyImageToMemoryKHR vkCmdCopyImageToMemoryKHR;
+PFN_vkCmdUpdateMemoryKHR vkCmdUpdateMemoryKHR;
+PFN_vkCmdFillMemoryKHR vkCmdFillMemoryKHR;
+PFN_vkCmdDrawIndirectCount2KHR vkCmdDrawIndirectCount2KHR;
+PFN_vkCmdDrawIndexedIndirectCount2KHR vkCmdDrawIndexedIndirectCount2KHR;
+#ifdef VK_EXT_mesh_shader
+PFN_vkCmdDrawMeshTasksIndirect2EXT vkCmdDrawMeshTasksIndirect2EXT;
+#endif
+static int vkewInit_VK_KHR_device_address_commands(VkInterface value)
+{
+	VKEW_GET_FUNCTION(vkCmdBindIndexBuffer3KHR);
+	VKEW_GET_FUNCTION(vkCmdBindVertexBuffers3KHR);
+	VKEW_GET_FUNCTION(vkCmdDrawIndirect2KHR);
+	VKEW_GET_FUNCTION(vkCmdDrawIndexedIndirect2KHR);
+	VKEW_GET_FUNCTION(vkCmdDispatchIndirect2KHR);
+	VKEW_GET_FUNCTION(vkCmdCopyMemoryKHR);
+	VKEW_GET_FUNCTION(vkCmdCopyMemoryToImageKHR);
+	VKEW_GET_FUNCTION(vkCmdCopyImageToMemoryKHR);
+	VKEW_GET_FUNCTION(vkCmdUpdateMemoryKHR);
+	VKEW_GET_FUNCTION(vkCmdFillMemoryKHR);
+	VKEW_GET_FUNCTION(vkCmdDrawIndirectCount2KHR);
+	VKEW_GET_FUNCTION(vkCmdDrawIndexedIndirectCount2KHR);
+#ifdef VK_EXT_mesh_shader
+	VKEW_GET_FUNCTION(vkCmdDrawMeshTasksIndirect2EXT);
+#endif
+	return vkCmdBindIndexBuffer3KHR != NULL &&
+		vkCmdDrawIndirect2KHR != NULL &&
+		vkCmdDrawIndexedIndirect2KHR != NULL &&
+		vkCmdDispatchIndirect2KHR != NULL &&
+		vkCmdCopyMemoryKHR != NULL;
 }
 #endif
 
@@ -1260,9 +1335,9 @@ PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT;
 #endif
 static int vkewInit_VK_EXT_debug_report(VkInterface value)
 {
-	VKEW_GET_PROC(vkDestroyDebugReportCallbackEXT);
-	VKEW_GET_PROC(vkCreateDebugReportCallbackEXT);
 #if defined VK_NO_PROTOTYPES
+	vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(value.instance, "vkDestroyDebugReportCallbackEXT");
+	vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(value.instance, "vkCreateDebugReportCallbackEXT");
 	return vkCreateDebugReportCallbackEXT != NULL;
 #else
 	return VK_TRUE;
@@ -1282,15 +1357,55 @@ PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
 #endif
 static int vkewInit_VK_EXT_debug_utils(VkInterface value)
 {
-	VKEW_GET_PROC(vkCreateDebugUtilsMessengerEXT);
-	VKEW_GET_PROC(vkDestroyDebugUtilsMessengerEXT);
-	VKEW_GET_PROC(vkSubmitDebugUtilsMessageEXT);
-	VKEW_GET_PROC(vkCmdBeginDebugUtilsLabelEXT);
-	VKEW_GET_PROC(vkCmdEndDebugUtilsLabelEXT);
-	VKEW_GET_PROC(vkCmdInsertDebugUtilsLabelEXT);
-	VKEW_GET_PROC(vkSetDebugUtilsObjectNameEXT);
 #if defined VK_NO_PROTOTYPES
-	return vkCreateDebugUtilsMessengerEXT != NULL;
+	vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(value.instance, "vkCreateDebugUtilsMessengerEXT");
+	vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(value.instance, "vkDestroyDebugUtilsMessengerEXT");
+	vkSubmitDebugUtilsMessageEXT = (PFN_vkSubmitDebugUtilsMessageEXT)vkGetInstanceProcAddr(value.instance, "vkSubmitDebugUtilsMessageEXT");
+	vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkewGetInterfaceProcAddr(value, "vkCmdBeginDebugUtilsLabelEXT");
+	vkCmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkewGetInterfaceProcAddr(value, "vkCmdEndDebugUtilsLabelEXT");
+	vkCmdInsertDebugUtilsLabelEXT = (PFN_vkCmdInsertDebugUtilsLabelEXT)vkewGetInterfaceProcAddr(value, "vkCmdInsertDebugUtilsLabelEXT");
+	vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkewGetInterfaceProcAddr(value, "vkSetDebugUtilsObjectNameEXT");
+	return vkCreateDebugUtilsMessengerEXT != NULL ||
+		vkCmdBeginDebugUtilsLabelEXT != NULL ||
+		vkSetDebugUtilsObjectNameEXT != NULL;
+#else
+	return VK_TRUE;
+#endif
+}
+#endif
+#ifdef VK_NV_device_diagnostic_checkpoints
+VkBool32 VKEW_NV_device_diagnostic_checkpoints;
+#if defined VK_NO_PROTOTYPES
+PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
+PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV;
+#endif
+static int vkewInit_VK_NV_device_diagnostic_checkpoints(VkInterface value)
+{
+#if defined VK_NO_PROTOTYPES
+	vkCmdSetCheckpointNV = (PFN_vkCmdSetCheckpointNV)vkewGetInterfaceProcAddr(value, "vkCmdSetCheckpointNV");
+	vkGetQueueCheckpointDataNV = (PFN_vkGetQueueCheckpointDataNV)vkewGetInterfaceProcAddr(value, "vkGetQueueCheckpointDataNV");
+	return vkCmdSetCheckpointNV != NULL;
+#else
+	return VK_TRUE;
+#endif
+}
+#endif
+#ifdef VK_NV_device_diagnostics_config
+VkBool32 VKEW_NV_device_diagnostics_config;
+#endif
+#ifdef VK_KHR_device_fault
+VkBool32 VKEW_KHR_device_fault;
+VkBool32 VKEW_KHR_device_fault_vendor_binary;
+#if defined VK_NO_PROTOTYPES
+PFN_vkGetDeviceFaultReportsKHR vkGetDeviceFaultReportsKHR;
+PFN_vkGetDeviceFaultDebugInfoKHR vkGetDeviceFaultDebugInfoKHR;
+#endif
+static int vkewInit_VK_KHR_device_fault(VkInterface value)
+{
+#if defined VK_NO_PROTOTYPES
+	vkGetDeviceFaultReportsKHR = (PFN_vkGetDeviceFaultReportsKHR)vkewGetInterfaceProcAddr(value, "vkGetDeviceFaultReportsKHR");
+	vkGetDeviceFaultDebugInfoKHR = (PFN_vkGetDeviceFaultDebugInfoKHR)vkewGetInterfaceProcAddr(value, "vkGetDeviceFaultDebugInfoKHR");
+	return vkGetDeviceFaultReportsKHR != NULL;
 #else
 	return VK_TRUE;
 #endif
@@ -1309,6 +1424,7 @@ PFN_vkCreateDisplayPlaneSurfaceKHR vkCreateDisplayPlaneSurfaceKHR;
 VkBool32 VKEW_KHR_display;
 static int vkewInit_VK_KHR_display(VkInterface value)
 {
+	(void)value;
 	VKEW_GET_PROC(vkGetPhysicalDeviceDisplayPropertiesKHR);
 	VKEW_GET_PROC(vkGetPhysicalDeviceDisplayPlanePropertiesKHR);
 	VKEW_GET_PROC(vkGetDisplayPlaneSupportedDisplaysKHR);
@@ -1333,6 +1449,7 @@ PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentM
 #endif
 static int vkewInit_VK_KHR_surface(VkInterface value)
 {
+	(void)value;
 #if defined VK_NO_PROTOTYPES
 	VKEW_GET_PROC(vkDestroySurfaceKHR);
 	VKEW_GET_PROC(vkGetPhysicalDeviceSurfaceSupportKHR);
@@ -1350,6 +1467,12 @@ VkBool32 VKEW_EXT_swapchain_colorspace;
 
 #ifdef VK_EXT_hdr_metadata	
 VkBool32 VKEW_EXT_hdr_metadata;
+PFN_vkSetHdrMetadataEXT vkSetHdrMetadataEXT;
+static int vkewInit_VK_EXT_hdr_metadata(VkInterface value)
+{
+	VKEW_GET_FUNCTION(vkSetHdrMetadataEXT);
+    return vkSetHdrMetadataEXT != NULL;	
+}
 #endif
 
 #ifdef VK_KHR_separate_depth_stencil_layouts
@@ -1420,6 +1543,73 @@ static int vkewInit_VK_EXT_extended_dynamic_state3(VkInterface value)
 }
 #endif
 
+// Add this near the other extension declarations (around line 800-900)
+#ifdef VK_KHR_timeline_semaphore
+VkBool32 VKEW_KHR_timeline_semaphore;
+PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR;
+PFN_vkWaitSemaphoresKHR vkWaitSemaphoresKHR;
+PFN_vkSignalSemaphoreKHR vkSignalSemaphoreKHR;
+
+static int vkewInit_VK_KHR_timeline_semaphore(VkInterface value)
+{
+	VKEW_GET_FUNCTION(vkGetSemaphoreCounterValueKHR);
+	VKEW_GET_FUNCTION(vkWaitSemaphoresKHR);
+	VKEW_GET_FUNCTION(vkSignalSemaphoreKHR);
+
+	return vkGetSemaphoreCounterValueKHR != NULL &&
+		vkWaitSemaphoresKHR != NULL &&
+		vkSignalSemaphoreKHR != NULL;
+}
+#endif
+
+#ifdef VK_EXT_mutable_descriptor_type
+VkBool32 VKEW_EXT_mutable_descriptor_type;
+#endif
+
+#ifdef VK_EXT_descriptor_heap
+VkBool32 VKEW_EXT_descriptor_heap;
+PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT;
+PFN_vkWriteResourceDescriptorsEXT vkWriteResourceDescriptorsEXT;
+PFN_vkCmdBindSamplerHeapEXT vkCmdBindSamplerHeapEXT;
+PFN_vkCmdBindResourceHeapEXT vkCmdBindResourceHeapEXT;
+PFN_vkCmdPushDataEXT vkCmdPushDataEXT;
+PFN_vkGetImageOpaqueCaptureDataEXT vkGetImageOpaqueCaptureDataEXT;
+PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT;
+PFN_vkRegisterCustomBorderColorEXT vkRegisterCustomBorderColorEXT;
+PFN_vkUnregisterCustomBorderColorEXT vkUnregisterCustomBorderColorEXT;
+PFN_vkGetTensorOpaqueCaptureDataARM vkGetTensorOpaqueCaptureDataARM;
+static int vkewInit_VK_EXT_descriptor_heap(VkInterface value)
+{
+    VKEW_GET_PROC(vkGetPhysicalDeviceDescriptorSizeEXT);
+	
+	VKEW_GET_FUNCTION(vkWriteSamplerDescriptorsEXT);
+	VKEW_GET_FUNCTION(vkWriteResourceDescriptorsEXT);
+	VKEW_GET_FUNCTION(vkCmdBindSamplerHeapEXT);
+	VKEW_GET_FUNCTION(vkCmdBindResourceHeapEXT);
+	VKEW_GET_FUNCTION(vkCmdPushDataEXT);
+	VKEW_GET_FUNCTION(vkGetImageOpaqueCaptureDataEXT);	
+	VKEW_GET_FUNCTION(vkRegisterCustomBorderColorEXT);
+	VKEW_GET_FUNCTION(vkUnregisterCustomBorderColorEXT);
+	VKEW_GET_FUNCTION(vkGetTensorOpaqueCaptureDataARM);
+	return vkWriteSamplerDescriptorsEXT != NULL &&
+		vkWriteResourceDescriptorsEXT != NULL &&
+		vkCmdBindSamplerHeapEXT != NULL &&
+		vkCmdBindResourceHeapEXT != NULL &&
+		vkCmdPushDataEXT != NULL &&
+		vkGetImageOpaqueCaptureDataEXT != NULL &&
+		vkGetPhysicalDeviceDescriptorSizeEXT != NULL &&
+		vkRegisterCustomBorderColorEXT != NULL &&
+		vkUnregisterCustomBorderColorEXT != NULL &&
+           vkGetTensorOpaqueCaptureDataARM != NULL;
+}
+
+#endif
+
+#ifdef VK_EXT_conditional_rendering
+VkBool32 VKEW_EXT_conditional_rendering;
+PFN_vkCmdBeginConditionalRenderingEXT vkCmdBeginConditionalRenderingEXT;
+PFN_vkCmdEndConditionalRenderingEXT vkCmdEndConditionalRenderingEXT;
+#endif
 #ifdef VK_EXT_descriptor_buffer
 VkBool32 VKEW_EXT_descriptor_buffer;
 PFN_vkGetDescriptorSetLayoutSizeEXT vkGetDescriptorSetLayoutSizeEXT;
@@ -1479,6 +1669,7 @@ PFN_vkCreateSharedSwapchainsKHR vkCreateSharedSwapchainsKHR;
 #endif
 static int vkewInit_VK_KHR_display_swapchain(VkInterface value)
 {
+	(void)value;
 #if defined VK_NO_PROTOTYPES
 	VKEW_GET_PROC(vkCreateSharedSwapchainsKHR);
 #endif
@@ -1492,6 +1683,7 @@ PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32Prese
 #endif
 static int vkewInit_VK_KHR_win32_surface(VkInterface value)
 {
+	(void)value;
 #if defined VK_NO_PROTOTYPES
 	VKEW_GET_PROC(vkCreateWin32SurfaceKHR);
 	VKEW_GET_PROC(vkGetPhysicalDeviceWin32PresentationSupportKHR);
@@ -1529,6 +1721,7 @@ PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparse
 #endif
 static int vkewInit_VK_KHR_driver_properties(VkInterface value)
 {
+	(void)value;
 #if defined VK_NO_PROTOTYPES
 	VKEW_GET_PROC(vkGetPhysicalDeviceFeatures2KHR);
 	VKEW_GET_PROC(vkGetPhysicalDeviceProperties2KHR);
@@ -1582,13 +1775,31 @@ int vkewInterfaceLevelInit(VkInterface value)
 #ifdef VK_EXT_descriptor_buffer
 	vkewInit_VK_EXT_descriptor_buffer(value);
 #endif
+#ifdef VK_EXT_conditional_rendering
+	VKEW_GET_FUNCTION(vkCmdBeginConditionalRenderingEXT);
+	VKEW_GET_FUNCTION(vkCmdEndConditionalRenderingEXT);
+#endif
+
+#ifdef VK_EXT_descriptor_heap
+    vkewInit_VK_EXT_descriptor_heap(value);	
+#endif
+
+#ifdef VK_KHR_timeline_semaphore
+	vkewInit_VK_KHR_timeline_semaphore(value);
+#endif
 
 #ifdef VK_EXT_extended_dynamic_state
 	vkewInit_VK_EXT_extended_dynamic_state(value);
 #endif
+
+#ifdef VK_EXT_hdr_metadata
+    vkewInit_VK_EXT_hdr_metadata(value);
+#endif
+
 #ifdef VK_EXT_extended_dynamic_state2
 	vkewInit_VK_EXT_extended_dynamic_state2(value);
 #endif
+
 #ifdef VK_EXT_extended_dynamic_state3
 	vkewInit_VK_EXT_extended_dynamic_state3(value);
 #endif
@@ -1597,13 +1808,19 @@ int vkewInterfaceLevelInit(VkInterface value)
 	vkewInit_VK_KHR_display_swapchain(value);
 #endif
 #ifdef VK_EXT_debug_report
-	VKEW_EXT_debug_report = vkewInit_VK_EXT_debug_report(value);
+	vkewInit_VK_EXT_debug_report(value);
 #endif
-#ifdef VK_EXT_debug_report
-	VKEW_EXT_debug_utils = vkewInit_VK_EXT_debug_utils(value);
+#ifdef VK_EXT_debug_utils
+	vkewInit_VK_EXT_debug_utils(value);
+#endif
+#ifdef VK_NV_device_diagnostic_checkpoints
+	vkewInit_VK_NV_device_diagnostic_checkpoints(value);
+#endif
+#ifdef VK_KHR_device_fault
+	vkewInit_VK_KHR_device_fault(value);
 #endif
 #ifdef VK_KHR_get_surface_capabilities2
-	VKEW_KHR_get_surface_capabilities2 = vkewInit_VK_KHR_get_surface_capabilities2(value);
+	 vkewInit_VK_KHR_get_surface_capabilities2(value);
 #endif
 #ifdef VK_KHR_push_descriptor
 	vkewInit_VK_KHR_push_descriptor(value);
@@ -1643,6 +1860,14 @@ int vkewInterfaceLevelInit(VkInterface value)
 #endif
 #ifdef VK_KHR_ray_query
 	vkewInit_VK_KHR_ray_query(value);
+#endif
+#ifdef VK_EXT_mesh_shader
+	if (VKEW_EXT_mesh_shader)
+		vkewInit_VK_EXT_mesh_shader(value);
+#endif
+#ifdef VK_KHR_device_address_commands
+	if (VKEW_KHR_device_address_commands)
+		vkewInit_VK_KHR_device_address_commands(value);
 #endif
 #ifdef VK_KHR_get_physical_device_properties2
 	vkewInit_VK_KHR_driver_properties(value);
@@ -1687,6 +1912,8 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_FUNCTION(vkCmdSetScissor);
 	VKEW_GET_FUNCTION(vkCmdSetViewport);
 	VKEW_GET_FUNCTION(vkCreateBuffer);
+    VKEW_GET_FUNCTION(vkCmdFillBuffer);
+    VKEW_GET_FUNCTION(vkCmdUpdateBuffer);
 	VKEW_GET_FUNCTION(vkCreateBufferView);
 	VKEW_GET_FUNCTION(vkCreateCommandPool);
 	VKEW_GET_FUNCTION(vkCreateComputePipelines);
@@ -1746,6 +1973,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_PROC(vkGetPhysicalDeviceFeatures);
 	VKEW_GET_PROC(vkGetPhysicalDeviceFeatures2);
 	VKEW_GET_PROC(vkGetPhysicalDeviceFormatProperties);
+	VKEW_GET_PROC(vkGetPhysicalDeviceImageFormatProperties);
 	VKEW_GET_PROC(vkGetPhysicalDeviceMemoryProperties);
 	VKEW_GET_PROC(vkGetPhysicalDeviceMemoryProperties2);
 	VKEW_GET_PROC(vkGetPhysicalDeviceProperties);
@@ -1762,7 +1990,7 @@ int vkewInterfaceLevelInit(VkInterface value)
 	VKEW_GET_PROC(vkUnmapMemory);
 	VKEW_GET_PROC(vkUpdateDescriptorSets);
 	VKEW_GET_PROC(vkWaitForFences);
-	VKEW_GET_PROC(vkWaitSemaphores);
+	
 	VKEW_GET_PROC(vkCreateRenderPass2);
 	VKEW_GET_PROC(vkCmdBeginRenderPass2);
 	VKEW_GET_PROC(vkCmdNextSubpass2);
@@ -1803,6 +2031,9 @@ VkBool32 VKEW_KHR_timeline_semaphore;
 VkBool32 VKEW_KHR_shader_clock;
 VkBool32 VKEW_KHR_shader_float16_int8;
 VkBool32 VKEW_EXT_memory_priority;
+#ifdef VK_EXT_pageable_device_local_memory
+VkBool32 VKEW_EXT_pageable_device_local_memory;
+#endif
 VkBool32 VKEW_EXT_pipeline_creation_cache_control;
 VkBool32 VKEW_EXT_subgroup_size_control;
 int vkewSupportsFullscreenExclusive(void)
@@ -1876,6 +2107,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
+	(void)pUserData;
 	char prefix[64] = "";
 	size_t messageLen = strlen(pCallbackData->pMessage) + 5000;
 	char* message = Vulkan.allocationCallbacks.pfnAllocation(NULL, messageLen, 4, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
@@ -2060,6 +2292,19 @@ static void InitExtensionsLayers(int enableValidation)
 	uint32_t instance_extension_count = 0;
 	int surfaceExtFound = 0;
 
+#ifdef VK_EXT_debug_report
+	VKEW_EXT_debug_report = VK_FALSE;
+#endif
+#ifdef VK_EXT_debug_utils
+	VKEW_EXT_debug_utils = VK_FALSE;
+#endif
+#ifdef VK_EXT_swapchain_colorspace
+	VKEW_EXT_swapchain_colorspace = VK_FALSE;
+#endif
+#ifdef VK_KHR_get_surface_capabilities2
+	VKEW_KHR_get_surface_capabilities2 = VK_FALSE;
+#endif
+
 	VkResult err = vkEnumerateInstanceExtensionProperties(NULL, &instance_extension_count, NULL);
 	Vulkan.enabledExtensionCount = 0;
 	if (err == VK_SUCCESS && instance_extension_count > 0)
@@ -2074,11 +2319,17 @@ static void InitExtensionsLayers(int enableValidation)
 			}
 			if (!strcmp(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, instance_extensions[i].extensionName))
 			{
+                VKEW_KHR_get_surface_capabilities2 = VK_TRUE;
 				AddExtensionLayer(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
 			}
 			if (!strcmp(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, instance_extensions[i].extensionName))
 			{
 				AddExtensionLayer(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+			}
+           if (!strcmp(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, instance_extensions[i].extensionName))
+			{
+				VKEW_EXT_swapchain_colorspace = VK_TRUE;
+				AddExtensionLayer(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
 			}
 			if (!strcmp(VK_KHR_SURFACE_EXTENSION_NAME, instance_extensions[i].extensionName))
 			{
@@ -2132,18 +2383,20 @@ static void InitExtensionsLayers(int enableValidation)
 				AddExtensionLayer(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 			}
 #endif
+#ifdef USE_EXT_debug_report
 			if (!strcmp(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, instance_extensions[i].extensionName))
 			{
+               VKEW_EXT_debug_report = VK_TRUE;
 				if (enableValidation)
 				{
 					AddExtensionLayer(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 				}
 			}
+#endif
 			if (!strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, instance_extensions[i].extensionName))
 			{
-#ifndef _PROFILE
+                VKEW_EXT_debug_utils = VK_TRUE;
 				if (enableValidation)
-#endif
 				{
 					AddExtensionLayer(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				}
@@ -2364,8 +2617,6 @@ int vkewInit(const VKEWSettings* lpArgs)
 	{
 		InitDebugReport();
 	}
-
-
 	err = VK_CHECK(vkCreateInstance(&Vulkan.instanceCreateInfo,
 		&Vulkan.allocationCallbacks, // If pAllocator is not NULL, pAllocator must be a pointer to a valid VkAllocationCallbacks structure
 		&Vulkan.i.instance)); //pInstance points a VkInstance handle in which the resulting instance is returned.
@@ -2394,9 +2645,13 @@ int vkewInit(const VKEWSettings* lpArgs)
 	if (err == VK_SUCCESS)
 	{
 		vkewInterfaceLevelInit(Vulkan.i);
-		if (enableValidation)
+        if (enableValidation && VKEW_EXT_debug_utils)
 		{
 			ActivateDebugReport();
+		}
+		else
+		{
+			VKEW_EXT_debug_utils = 0;
 		}
 	}
 	return err;
@@ -2432,17 +2687,62 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 	VKEW_KHR_display = checkExtensionAvailability(
 		VK_KHR_DISPLAY_EXTENSION_NAME, available_extensions, extensions_count);
 
-	VKEW_EXT_descriptor_buffer = checkExtensionAvailability(
-		VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_EXT_conditional_rendering = checkExtensionAvailability(
+		VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME, available_extensions, extensions_count);
+	if (VKEW_EXT_conditional_rendering)
+	{
+		VkPhysicalDeviceConditionalRenderingFeaturesEXT conditional = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT, NULL, VK_FALSE, VK_FALSE };
+		VkPhysicalDeviceFeatures2 conditionalFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &conditional };
+		vkGetPhysicalDeviceFeatures2(physical_device, &conditionalFeatures);
+		VKEW_EXT_conditional_rendering = conditional.conditionalRendering;
+	}
+	if (!Vulkan.settings.disableDescriptorBuffer)
+		VKEW_EXT_descriptor_buffer = checkExtensionAvailability(
+			VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, available_extensions, extensions_count);
+
+#ifdef VK_EXT_descriptor_heap
+    if (Vulkan.settings.enableDescriptorHeap)	
+		VKEW_EXT_descriptor_heap = checkExtensionAvailability(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME, available_extensions, extensions_count);
+	if (Vulkan.settings.enableDescriptorHeap)
+	{
+#ifdef VK_KHR_device_address_commands
+		VKEW_KHR_device_address_commands = checkExtensionAvailability(VK_KHR_DEVICE_ADDRESS_COMMANDS_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
+#ifdef VK_KHR_shader_untyped_pointers
+		VKEW_KHR_shader_untyped_pointers = checkExtensionAvailability(VK_KHR_SHADER_UNTYPED_POINTERS_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
+#ifdef VK_KHR_unified_image_layouts
+		VKEW_KHR_unified_image_layouts = checkExtensionAvailability(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
+	}
+#endif
+
+	VKEW_EXT_mutable_descriptor_type = checkExtensionAvailability(
+		VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME, available_extensions, extensions_count);
 
 	VKEW_KHR_swapchain = checkExtensionAvailability(
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME, available_extensions, extensions_count);
 
-	VKEW_EXT_swapchain_colorspace = checkExtensionAvailability(
-		VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_EXT_hdr_metadata = checkExtensionAvailability(
+		VK_EXT_HDR_METADATA_EXTENSION_NAME, available_extensions, extensions_count);
 
 	VKEW_EXT_robustness2 = checkExtensionAvailability(
 		VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, available_extensions, extensions_count);
+
+	// Nsight Aftermath: NVIDIA-only diagnostics, requested only when built with GFX_HAS_AFTERMATH.
+#if defined(GFX_HAS_AFTERMATH) && defined(VK_NV_device_diagnostic_checkpoints) && defined(VK_NV_device_diagnostics_config)
+	VKEW_NV_device_diagnostic_checkpoints = checkExtensionAvailability(
+		VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_NV_device_diagnostics_config = checkExtensionAvailability(
+		VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
+
+#ifdef VK_KHR_device_fault
+	// Opt-in through VKEWSettings::enableDeviceFault.
+	VKEW_KHR_device_fault = Vulkan.settings.enableDeviceFault && checkExtensionAvailability(
+		VK_KHR_DEVICE_FAULT_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
 
 	VKEW_KHR_get_physical_device_properties2 = checkExtensionAvailability(
 		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, available_extensions, extensions_count);
@@ -2468,10 +2768,13 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 		VK_KHR_MAINTENANCE3_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_maintenance4 = checkExtensionAvailability(
 		VK_KHR_MAINTENANCE_4_EXTENSION_NAME, available_extensions, extensions_count);
+    VKEW_KHR_maintenance5 = checkExtensionAvailability(VK_KHR_MAINTENANCE_5_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_device_group = checkExtensionAvailability(
 		VK_KHR_DEVICE_GROUP_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_multiview = checkExtensionAvailability(
 		VK_KHR_MULTIVIEW_EXTENSION_NAME, available_extensions, extensions_count);
+	VKEW_EXT_mesh_shader = checkExtensionAvailability(
+		VK_EXT_MESH_SHADER_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_buffer_device_address = checkExtensionAvailability(
 		VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_portability_enumeration = checkExtensionAvailability(
@@ -2498,6 +2801,10 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 		VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_KHR_ray_tracing_pipeline = checkExtensionAvailability(
 		VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, available_extensions, extensions_count);
+#ifdef VK_NV_ray_tracing_linear_swept_spheres
+	VKEW_NV_ray_tracing_linear_swept_spheres = checkExtensionAvailability(
+		VK_NV_RAY_TRACING_LINEAR_SWEPT_SPHERES_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
 	VKEW_EXT_shader_demote_to_helper_invocation = checkExtensionAvailability(
 		VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME, available_extensions, extensions_count);
 
@@ -2513,6 +2820,10 @@ VkBool32 vkewEnumerateDeviceExtensionProperties(VkPhysicalDevice physical_device
 		VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_EXT_memory_priority = checkExtensionAvailability(
 		VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME, available_extensions, extensions_count);
+#ifdef VK_EXT_pageable_device_local_memory
+	VKEW_EXT_pageable_device_local_memory = checkExtensionAvailability(
+		VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME, available_extensions, extensions_count);
+#endif
 	VKEW_EXT_pipeline_creation_cache_control = checkExtensionAvailability(
 		VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME, available_extensions, extensions_count);
 	VKEW_EXT_subgroup_size_control = checkExtensionAvailability(
@@ -2638,7 +2949,7 @@ VkResult vkewCreateDevice(VkSurfaceKHR aSurface, int aDeviceIndex)
 			&selected_transfert_queue_family_index,
 			&selected_compute_queue_family_index))
 		{
-			if (aDeviceIndex == -1 || aDeviceIndex == i)
+			if (aDeviceIndex == -1 || aDeviceIndex == (int)i)
 			{
 				Vulkan.physicalDevice = physical_devices[i];
 				Vulkan.graphicsQueueFamilyIndex = selected_graphics_queue_family_index;
@@ -2676,6 +2987,7 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 	uint32_t selected_transfert_queue_family_index,
 	uint32_t selected_compute_queue_family_index)
 {
+	(void)aDevice;
 	VkResult err = vkEnumerateDeviceExtensionProperties(Vulkan.physicalDevice, NULL, &Vulkan.availableExtensionCount,
 		NULL);
 	if (err == VK_SUCCESS && Vulkan.availableExtensionCount > 0)
@@ -2711,18 +3023,55 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DISPLAY_EXTENSION_NAME;
 	}
+	if (VKEW_EXT_conditional_rendering)
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME;
 	if (VKEW_EXT_descriptor_buffer)
 	{
    	   ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME;
+	   if (VKEW_EXT_mutable_descriptor_type)
+	   {
+		   ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME;
+	   }
 	}
+	if (VKEW_EXT_memory_priority)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME;
+	}
+#ifdef VK_EXT_pageable_device_local_memory
+	if (VKEW_EXT_pageable_device_local_memory && VKEW_EXT_memory_priority)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME;
+	}
+#endif
+#ifdef VK_EXT_descriptor_heap
+	if (VKEW_EXT_descriptor_heap && VKEW_KHR_maintenance5)
+	{
+        ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME;
+	}
+#endif
+#if defined(VK_EXT_descriptor_heap) && defined(VK_KHR_device_address_commands) && defined(VK_KHR_shader_untyped_pointers)
+	// The heap-based root path needs these three together with VK_EXT_descriptor_heap.
+	if (VKEW_EXT_descriptor_heap && VKEW_KHR_maintenance5)
+	{
+		if (VKEW_KHR_device_address_commands)
+			ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEVICE_ADDRESS_COMMANDS_EXTENSION_NAME;
+		if (VKEW_KHR_shader_untyped_pointers)
+			ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SHADER_UNTYPED_POINTERS_EXTENSION_NAME;
+#ifdef VK_KHR_unified_image_layouts
+		if (VKEW_KHR_unified_image_layouts)
+			ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME;
+#endif
+	}
+#endif
 
 	if (VKEW_KHR_swapchain)
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 	}
-	if (VKEW_EXT_swapchain_colorspace)
+	// VK_EXT_swapchain_colorspace is an instance extension — do NOT add to device extensions.
+	if (VKEW_EXT_hdr_metadata)
 	{
-		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME;
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_HDR_METADATA_EXTENSION_NAME;
 	}
 	if (VKEW_KHR_image_format_list)
 	{
@@ -2736,6 +3085,22 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_ROBUSTNESS_2_EXTENSION_NAME;
 	}
+#if defined(GFX_HAS_AFTERMATH) && defined(VK_NV_device_diagnostic_checkpoints) && defined(VK_NV_device_diagnostics_config)
+	if (VKEW_NV_device_diagnostic_checkpoints)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME;
+	}
+	if (VKEW_NV_device_diagnostics_config)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME;
+	}
+#endif
+#ifdef VK_KHR_device_fault
+	if (VKEW_KHR_device_fault)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_DEVICE_FAULT_EXTENSION_NAME;
+	}
+#endif
 
 	if (VKEW_EXT_descriptor_indexing)
 	{
@@ -2765,6 +3130,12 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_SPIRV_1_4_EXTENSION_NAME;
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
 	}
+#ifdef VK_NV_ray_tracing_linear_swept_spheres
+	if (VKEW_NV_ray_tracing_linear_swept_spheres)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_NV_RAY_TRACING_LINEAR_SWEPT_SPHERES_EXTENSION_NAME;
+	}
+#endif
 
 	if (VKEW_KHR_ray_query)
 	{
@@ -2793,6 +3164,11 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 	if (VKEW_EXT_extended_dynamic_state3)
 	{
 		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME;
+	}
+
+	if (VKEW_EXT_mesh_shader)
+	{
+		ppEnabledExtensionNames[enabledExtensionCount++] = VK_EXT_MESH_SHADER_EXTENSION_NAME;
 	}
 
 	if (VKEW_KHR_maintenance5)
@@ -2910,6 +3286,36 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
    	   VK_FALSE, // descriptorBufferImageLayoutIgnored (optional)
    	   VK_FALSE  // descriptorBufferPushDescriptors (optional)
 	};
+	VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures = {
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT,
+		NULL,
+		VK_TRUE
+	};
+#ifdef VK_EXT_pageable_device_local_memory
+	VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT pageableDeviceLocalMemoryFeatures = {
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT,
+		NULL,
+		VK_TRUE
+	};
+#endif
+
+#ifdef VK_EXT_descriptor_heap
+#if defined(VK_KHR_device_address_commands) && defined(VK_KHR_shader_untyped_pointers)
+	VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR deviceAddressCommandsFeatures = {
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR, NULL, VK_TRUE };
+	VkPhysicalDeviceShaderUntypedPointersFeaturesKHR shaderUntypedPointersFeatures = {
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR, NULL, VK_TRUE };
+#endif
+#ifdef VK_KHR_unified_image_layouts
+	VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures = {
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR, NULL, VK_TRUE, VK_FALSE };
+#endif
+	VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
+        NULL,
+        VK_TRUE // descriptorHeap
+    };
+#endif 
 
 	queue_create_infos[queueCreateInfoCount++] = qci0;
 	if (selected_graphics_queue_family_index != selected_present_queue_family_index)
@@ -2942,6 +3348,11 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 			VK_FALSE, // robustImageAccess2
 			VK_TRUE // nullDescriptor        
 		};
+#ifdef VK_KHR_device_fault
+		VkPhysicalDeviceFaultFeaturesKHR deviceFaultFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_KHR
+		};
+#endif
 		VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features = {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
 			NULL,
@@ -2967,29 +3378,42 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 			VK_TRUE // Enable dynamic rendering features
 		};
 
-		VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = {
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+		VkPhysicalDeviceMaintenance5FeaturesKHR maintenance5Features = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR,
+			NULL,
+			VK_TRUE
 		};
-		indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-		indexingFeatures.runtimeDescriptorArray = VK_TRUE; // if you want unsized arrays
-		indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE; // for variable size
+
+		VkPhysicalDeviceVulkan12Features features12 = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+			NULL
+		};
+		features12.scalarBlockLayout                         = VK_TRUE;
+		features12.descriptorIndexing                        = VK_TRUE;
+		features12.descriptorBindingPartiallyBound           = VK_TRUE;
+		features12.runtimeDescriptorArray                    = VK_TRUE;
+		features12.descriptorBindingVariableDescriptorCount  = VK_TRUE;
+		features12.timelineSemaphore                         = VK_TRUE;
+		features12.bufferDeviceAddress                       = VK_TRUE;
+
+		VkPhysicalDeviceVulkan13Features features13 = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+			NULL,
+			VK_TRUE // primitiveTopologyListRestart
+		};
+        features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 
 		VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeatures = {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR
 		};
 		presentWaitFeatures.presentWait = VK_TRUE;
 
+		VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitiveTopologyListRestartFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT,
+            NULL,
+            VK_TRUE	
 
-		VkPhysicalDeviceTimelineSemaphoreFeatures timelineFeatures = {
-			 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES
-		};
-		timelineFeatures.timelineSemaphore = VK_TRUE;
-
-		VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-			NULL
-		};
-
+        };		
 
 		VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR
@@ -3000,6 +3424,13 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
 			NULL
 		};
+
+#ifdef VK_NV_ray_tracing_linear_swept_spheres
+		VkPhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV rayTracingLinearSweptSpheresFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_LINEAR_SWEPT_SPHERES_FEATURES_NV,
+			NULL
+		};
+#endif
 
 		VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR
@@ -3019,10 +3450,26 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 		};
 		extDyn2.extendedDynamicState2 = VK_TRUE;
 
-		// Optional
+		/*
 		VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extDyn3 = {
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT
 		};
+		*/
+
+		VkPhysicalDeviceMultiviewFeatures multiviewFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
+			NULL,
+			VK_TRUE
+		};
+
+#ifdef VK_EXT_mesh_shader
+		VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+			NULL
+		};
+		meshShaderFeatures.meshShader = VK_TRUE;
+		meshShaderFeatures.taskShader = VK_TRUE;
+#endif
 
 		if (VKEW_VERSION_1_1)
 		{
@@ -3034,15 +3481,72 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 			lastPNext = pNext;
 		}
 
-		if (VKEW_EXT_shader_demote_to_helper_invocation)
+			
+		if (VKEW_VERSION_1_2)
+        {
+            VkBaseInStructure *pNext = (VkBaseInStructure *)&features12;
+            if (lastPNext)
+                lastPNext->pNext = pNext;
+            else
+                device_create_info.pNext = pNext;
+            lastPNext = pNext;
+        }
+
+		if (Vulkan.settings.enablePrimitiveRestart)
 		{
-			VkBaseInStructure* pNext = (VkBaseInStructure*)&shaderDemoteToHelperInvocationFeatures;
-			vkewQueryFeatures(&shaderDemoteToHelperInvocationFeatures);
-			if (lastPNext)
-				lastPNext->pNext = pNext;
-			else
-				device_create_info.pNext = pNext;
-			lastPNext = pNext;
+            VkBaseInStructure *pNext = (VkBaseInStructure *)&primitiveTopologyListRestartFeatures;
+
+            if (lastPNext)
+                lastPNext->pNext = pNext;
+            else
+                device_create_info.pNext = pNext;
+            lastPNext = pNext;
+		}
+
+        if (VKEW_VERSION_1_3)
+        {
+            VkBaseInStructure *pNext = (VkBaseInStructure *)&features13;
+            vkewQueryFeatures(&features13);
+
+            if (lastPNext)
+                lastPNext->pNext = pNext;
+            else
+                device_create_info.pNext = pNext;
+            lastPNext = pNext;
+
+        }
+        else
+        {
+            if (VKEW_KHR_synchronization2)
+            {
+                VkBaseInStructure *pNext = (VkBaseInStructure *)&sync2Features;
+                vkewQueryFeatures(&sync2Features);
+                if (lastPNext)
+                    lastPNext->pNext = pNext;
+                else
+                    device_create_info.pNext = pNext;
+                lastPNext = pNext;
+            }
+            if (VKEW_EXT_shader_demote_to_helper_invocation)
+            {
+                VkBaseInStructure *pNext = (VkBaseInStructure *)&shaderDemoteToHelperInvocationFeatures;
+                vkewQueryFeatures(&shaderDemoteToHelperInvocationFeatures);
+                if (lastPNext)
+                    lastPNext->pNext = pNext;
+                else
+                    device_create_info.pNext = pNext;
+                lastPNext = pNext;
+            }
+            if (VKEW_KHR_dynamic_rendering)
+            {
+                VkBaseInStructure *pNext = (VkBaseInStructure *)&dynamicRenderingFeatures;
+                if (lastPNext)
+                    lastPNext->pNext = pNext;
+                else
+                    device_create_info.pNext = pNext;
+                lastPNext = pNext;
+            }
+
 		}
 
 		if (VKEW_KHR_ray_tracing_pipeline)
@@ -3056,6 +3560,32 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
+
+#ifdef VK_NV_ray_tracing_linear_swept_spheres
+		if (VKEW_NV_ray_tracing_linear_swept_spheres)
+		{
+			vkewQueryFeatures(&rayTracingLinearSweptSpheresFeatures);
+			VKEW_NV_ray_tracing_linear_swept_spheres = rayTracingLinearSweptSpheresFeatures.linearSweptSpheres;
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&rayTracingLinearSweptSpheresFeatures;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}
+#endif
+
+		
+		if (VKEW_KHR_multiview)
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&multiviewFeatures;
+			vkewQueryFeatures(&multiviewFeatures);
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+        }		
 
 
 		if (VKEW_KHR_ray_tracing_pipeline)
@@ -3080,26 +3610,6 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
-		if (VKEW_KHR_buffer_device_address)
-		{
-			VkBaseInStructure* pNext = (VkBaseInStructure*)&bufferDeviceAddressFeatures;
-			vkewQueryFeatures(&bufferDeviceAddressFeatures);
-			if (lastPNext)
-				lastPNext->pNext = pNext;
-			else
-				device_create_info.pNext = pNext;
-			lastPNext = pNext;
-		}
-		if (VKEW_VERSION_1_2 || VKEW_KHR_timeline_semaphore)
-		{
-			VkBaseInStructure* pNext = (VkBaseInStructure*)&timelineFeatures;
-			vkewQueryFeatures(&timelineFeatures);
-			if (lastPNext)
-				lastPNext->pNext = pNext;
-			else
-				device_create_info.pNext = pNext;
-			lastPNext = pNext;
-		}
 		// Chain pNext properly
 		if (VKEW_EXT_robustness2)
 		{
@@ -3111,6 +3621,29 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
+#ifdef VK_KHR_device_fault
+		if (VKEW_KHR_device_fault)
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&deviceFaultFeatures;
+			vkewQueryFeatures(&deviceFaultFeatures);
+			if (deviceFaultFeatures.deviceFault)
+			{
+				// Enable only what the crash reporter consumes; masked-report features change device-loss behavior.
+				deviceFaultFeatures.deviceFaultReportMasked = VK_FALSE;
+				deviceFaultFeatures.deviceFaultDeviceLostOnMasked = VK_FALSE;
+				VKEW_KHR_device_fault_vendor_binary = deviceFaultFeatures.deviceFaultVendorBinary;
+				if (lastPNext)
+					lastPNext->pNext = pNext;
+				else
+					device_create_info.pNext = pNext;
+				lastPNext = pNext;
+			}
+			else
+			{
+				VKEW_KHR_device_fault = VK_FALSE; // extension is enabled but the feature is not; callers must not use it
+			}
+		}
+#endif
 		if (VKEW_KHR_present_id)
 		{
 			VkBaseInStructure* pNext = (VkBaseInStructure*)&presentIdFeatures;
@@ -3121,19 +3654,13 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
-		if (VKEW_KHR_synchronization2)
+		
+	
+		if (VKEW_KHR_maintenance5)
 		{
-			VkBaseInStructure* pNext = (VkBaseInStructure*)&sync2Features;
-			vkewQueryFeatures(&sync2Features);
-			if (lastPNext)
-				lastPNext->pNext = pNext;
-			else
-				device_create_info.pNext = pNext;
-			lastPNext = pNext;
-		}
-		if (VKEW_KHR_dynamic_rendering)
-		{
-			VkBaseInStructure* pNext = (VkBaseInStructure*)&dynamicRenderingFeatures;
+			vkewQueryFeatures(&maintenance5Features);
+			maintenance5Features.maintenance5 = VK_TRUE;
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&maintenance5Features;
 			if (lastPNext)
 				lastPNext->pNext = pNext;
 			else
@@ -3150,7 +3677,28 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
-		
+
+#ifdef VK_EXT_mesh_shader
+		if (VKEW_EXT_mesh_shader)
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&meshShaderFeatures;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}
+#endif
+
+		VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures = {
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT, NULL, VK_TRUE, VK_FALSE };
+		if (VKEW_EXT_conditional_rendering)
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&conditionalRenderingFeatures;
+			if (lastPNext) lastPNext->pNext = pNext;
+			else device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}
 		if (VKEW_EXT_descriptor_buffer)
 		{
 			vkewQueryFeatures(&descriptorBufferFeatures);
@@ -3164,17 +3712,83 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
-		
-		if (VKEW_VERSION_1_2)
+
+		if (VKEW_EXT_memory_priority)
 		{
-			VkBaseInStructure* pNext = (VkBaseInStructure*)&indexingFeatures;
-			vkewQueryFeatures(&indexingFeatures);
+			vkewQueryFeatures(&memoryPriorityFeatures);
+			VKEW_EXT_memory_priority = memoryPriorityFeatures.memoryPriority;
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&memoryPriorityFeatures;
 			if (lastPNext)
 				lastPNext->pNext = pNext;
 			else
 				device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
+#ifdef VK_EXT_pageable_device_local_memory
+		if (VKEW_EXT_pageable_device_local_memory)
+		{
+			vkewQueryFeatures(&pageableDeviceLocalMemoryFeatures);
+			VKEW_EXT_pageable_device_local_memory = pageableDeviceLocalMemoryFeatures.pageableDeviceLocalMemory;
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&pageableDeviceLocalMemoryFeatures;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}
+#endif
+
+#ifdef VK_EXT_descriptor_heap
+		if (VKEW_EXT_descriptor_heap)
+		{
+			vkewQueryFeatures(&descriptorHeapFeatures);
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&descriptorHeapFeatures;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+            lastPNext = pNext;	
+		}
+#endif
+
+#if defined(VK_KHR_device_address_commands) && defined(VK_KHR_shader_untyped_pointers)
+		if (VKEW_EXT_descriptor_heap && VKEW_KHR_maintenance5 && VKEW_KHR_device_address_commands && VKEW_KHR_shader_untyped_pointers)
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&deviceAddressCommandsFeatures;
+			lastPNext->pNext = pNext;
+			lastPNext = pNext;
+			pNext = (VkBaseInStructure*)&shaderUntypedPointersFeatures;
+			lastPNext->pNext = pNext;
+			lastPNext = pNext;
+#ifdef VK_KHR_unified_image_layouts
+			if (VKEW_KHR_unified_image_layouts)
+			{
+				pNext = (VkBaseInStructure*)&unifiedImageLayoutsFeatures;
+				lastPNext->pNext = pNext;
+				lastPNext = pNext;
+			}
+#endif
+		}
+#endif
+
+		if (VKEW_EXT_mutable_descriptor_type)
+		{
+			// Mutable descriptor type must be chained after descriptor buffer
+			// because it depends on it.
+			VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorTypeFeatures = {
+				VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+				NULL,
+				VK_TRUE // mutableDescriptorType
+			};
+			vkewQueryFeatures(&mutableDescriptorTypeFeatures);
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&mutableDescriptorTypeFeatures;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}
+	
 
 		if (VKEW_EXT_extended_dynamic_state)
 		{
@@ -3197,6 +3811,28 @@ VkResult vkewCreateDeviceAt(VkPhysicalDevice aDevice,
 			else device_create_info.pNext = pNext;
 			lastPNext = pNext;
 		}
+
+#if defined(GFX_HAS_AFTERMATH) && defined(VK_NV_device_diagnostics_config)
+		// Nsight Aftermath: resource tracking, automatic checkpoints, shader debug info and error reporting.
+		// Declared at block scope so it outlives vkCreateDevice.
+		VkDeviceDiagnosticsConfigCreateInfoNV aftermathDiagnostics = {
+			VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV,
+			NULL,
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV |
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV |
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_ERROR_REPORTING_BIT_NV
+		};
+		if (VKEW_NV_device_diagnostics_config)
+		{
+			VkBaseInStructure* pNext = (VkBaseInStructure*)&aftermathDiagnostics;
+			if (lastPNext)
+				lastPNext->pNext = pNext;
+			else
+				device_create_info.pNext = pNext;
+			lastPNext = pNext;
+		}
+#endif
 
 		// Create the Vulkan logical device
 		VkResult ret = VK_CHECK(vkCreateDevice(Vulkan.physicalDevice, &device_create_info, &Vulkan.allocationCallbacks, &Vulkan.i.device));

@@ -59,7 +59,13 @@ typedef struct vkewSettings
 	void (*pfnOnError)(void);	
 	unsigned int enableValidation : 1;
 	unsigned int enableRaytracing : 1;
+    unsigned int enableMeshShading : 1;
 	unsigned int enableDynamicRendering : 1;
+    unsigned int enableDescriptorHeap : 1;
+    unsigned int enablePrimitiveRestart : 1;
+    unsigned int disableDescriptorBuffer : 1;
+    unsigned int enableDeviceFault : 1; // VK_KHR_device_fault: post-mortem GPU fault reports (opt-in, query-only)
+
 }VKEWSettings;
 #ifdef __cplusplus
 extern "C" {
@@ -139,6 +145,8 @@ extern "C" {
 	extern PFN_vkCmdWriteTimestamp vkCmdWriteTimestamp;
 	extern PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR;
 	extern PFN_vkCreateBuffer vkCreateBuffer;
+    extern PFN_vkCmdUpdateBuffer vkCmdUpdateBuffer;
+    extern PFN_vkCmdFillBuffer vkCmdFillBuffer;
 	extern PFN_vkCreateBufferView vkCreateBufferView;
 	extern PFN_vkCreateCommandPool vkCreateCommandPool;
 	extern PFN_vkCreateComputePipelines vkCreateComputePipelines;
@@ -204,6 +212,7 @@ extern "C" {
 	extern PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
 	extern PFN_vkGetPhysicalDeviceFeatures2 vkGetPhysicalDeviceFeatures2;
 	extern PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
+	extern PFN_vkGetPhysicalDeviceImageFormatProperties vkGetPhysicalDeviceImageFormatProperties;
 	extern PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 	extern PFN_vkGetPhysicalDeviceMemoryProperties2 vkGetPhysicalDeviceMemoryProperties2;
 	extern PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
@@ -241,8 +250,14 @@ extern "C" {
 #endif
 #ifdef VK_EXT_hdr_metadata
 	extern VkBool32 VKEW_EXT_hdr_metadata;
+    extern PFN_vkSetHdrMetadataEXT vkSetHdrMetadataEXT;
 #endif
 
+#ifdef VK_EXT_conditional_rendering
+    extern VkBool32 VKEW_EXT_conditional_rendering;
+    extern PFN_vkCmdBeginConditionalRenderingEXT vkCmdBeginConditionalRenderingEXT;
+    extern PFN_vkCmdEndConditionalRenderingEXT vkCmdEndConditionalRenderingEXT;
+#endif
 #ifdef VK_EXT_descriptor_buffer
     extern VkBool32 VKEW_EXT_descriptor_buffer;
 	extern PFN_vkGetDescriptorSetLayoutSizeEXT vkGetDescriptorSetLayoutSizeEXT;
@@ -258,6 +273,25 @@ extern "C" {
 	extern PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
 
 #endif
+
+#ifdef VK_EXT_mutable_descriptor_type
+	extern VkBool32 VKEW_EXT_mutable_descriptor_type;
+#endif
+
+#ifdef VK_EXT_descriptor_heap
+    extern VkBool32 VKEW_EXT_descriptor_heap;
+    extern PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT;
+    extern PFN_vkWriteResourceDescriptorsEXT vkWriteResourceDescriptorsEXT;
+    extern PFN_vkCmdBindSamplerHeapEXT vkCmdBindSamplerHeapEXT;
+    extern PFN_vkCmdBindResourceHeapEXT vkCmdBindResourceHeapEXT;
+    extern PFN_vkCmdPushDataEXT vkCmdPushDataEXT;
+    extern PFN_vkGetImageOpaqueCaptureDataEXT vkGetImageOpaqueCaptureDataEXT;
+    extern PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT;
+    extern PFN_vkRegisterCustomBorderColorEXT vkRegisterCustomBorderColorEXT;
+    extern PFN_vkUnregisterCustomBorderColorEXT vkUnregisterCustomBorderColorEXT;
+    extern PFN_vkGetTensorOpaqueCaptureDataARM vkGetTensorOpaqueCaptureDataARM;
+#endif
+
 #ifdef VK_KHR_swapchain
 	extern VkBool32 VKEW_KHR_swapchain;
 	extern PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR;
@@ -305,6 +339,33 @@ extern "C" {
 
 #ifdef VK_KHR_multiview
 	extern VkBool32 VKEW_KHR_multiview;
+#endif
+#ifdef VK_EXT_mesh_shader
+	extern VkBool32 VKEW_EXT_mesh_shader;
+#endif
+#ifdef VK_KHR_shader_untyped_pointers
+	extern VkBool32 VKEW_KHR_shader_untyped_pointers;
+#endif
+#ifdef VK_KHR_unified_image_layouts
+	extern VkBool32 VKEW_KHR_unified_image_layouts;
+#endif
+#ifdef VK_KHR_device_address_commands
+	extern VkBool32 VKEW_KHR_device_address_commands;
+	extern PFN_vkCmdBindIndexBuffer3KHR vkCmdBindIndexBuffer3KHR;
+	extern PFN_vkCmdBindVertexBuffers3KHR vkCmdBindVertexBuffers3KHR;
+	extern PFN_vkCmdDrawIndirect2KHR vkCmdDrawIndirect2KHR;
+	extern PFN_vkCmdDrawIndexedIndirect2KHR vkCmdDrawIndexedIndirect2KHR;
+	extern PFN_vkCmdDispatchIndirect2KHR vkCmdDispatchIndirect2KHR;
+	extern PFN_vkCmdCopyMemoryKHR vkCmdCopyMemoryKHR;
+	extern PFN_vkCmdCopyMemoryToImageKHR vkCmdCopyMemoryToImageKHR;
+	extern PFN_vkCmdCopyImageToMemoryKHR vkCmdCopyImageToMemoryKHR;
+	extern PFN_vkCmdUpdateMemoryKHR vkCmdUpdateMemoryKHR;
+	extern PFN_vkCmdFillMemoryKHR vkCmdFillMemoryKHR;
+	extern PFN_vkCmdDrawIndirectCount2KHR vkCmdDrawIndirectCount2KHR;
+	extern PFN_vkCmdDrawIndexedIndirectCount2KHR vkCmdDrawIndexedIndirectCount2KHR;
+#ifdef VK_EXT_mesh_shader
+	extern PFN_vkCmdDrawMeshTasksIndirect2EXT vkCmdDrawMeshTasksIndirect2EXT;
+#endif
 #endif
 
 #ifdef VK_KHR_get_surface_capabilities2
@@ -426,6 +487,11 @@ extern "C" {
 #ifdef VK_KHR_incremental_present
 	extern VkBool32 VKEW_KHR_incremental_present;
 #endif
+
+#ifdef VK_NV_ray_tracing_linear_swept_spheres
+    extern VkBool32 VKEW_NV_ray_tracing_linear_swept_spheres;
+#endif
+
 #ifdef VK_KHR_maintenance4
 	extern VkBool32 VKEW_KHR_maintenance4;
 	extern PFN_vkGetDeviceBufferMemoryRequirementsKHR vkGetDeviceBufferMemoryRequirementsKHR;
@@ -471,6 +537,8 @@ extern "C" {
 #endif 
 #ifdef VK_KHR_ray_query
 	extern VkBool32 VKEW_KHR_ray_query;
+#endif
+#ifdef VK_EXT_mesh_shader
 	extern PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
 	extern PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirectEXT;
 	extern PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCountEXT;
@@ -504,6 +572,9 @@ extern "C" {
 #endif
 #ifdef VK_KHR_timeline_semaphore 
 	extern VkBool32 VKEW_KHR_timeline_semaphore;
+	extern PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR;
+	extern PFN_vkWaitSemaphoresKHR vkWaitSemaphoresKHR;
+	extern PFN_vkSignalSemaphoreKHR vkSignalSemaphoreKHR;
 #endif
 #ifdef VK_KHR_shader_clock 
 	extern VkBool32 VKEW_KHR_shader_clock;
@@ -514,8 +585,29 @@ extern "C" {
 #ifdef VK_KHR_driver_properties 
 	extern VkBool32 VKEW_KHR_driver_properties;
 #endif
-#ifdef VK_EXT_memory_priority 
+#ifdef VK_EXT_memory_priority
 	extern VkBool32 VKEW_EXT_memory_priority;
+#endif
+#ifdef VK_NV_device_diagnostic_checkpoints
+	extern VkBool32 VKEW_NV_device_diagnostic_checkpoints;
+#if defined VK_NO_PROTOTYPES
+	extern PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
+	extern PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV;
+#endif
+#endif
+#ifdef VK_NV_device_diagnostics_config
+	extern VkBool32 VKEW_NV_device_diagnostics_config;
+#endif
+#ifdef VK_KHR_device_fault
+	extern VkBool32 VKEW_KHR_device_fault;
+	extern VkBool32 VKEW_KHR_device_fault_vendor_binary; // deviceFaultVendorBinary feature was enabled
+#if defined VK_NO_PROTOTYPES
+	extern PFN_vkGetDeviceFaultReportsKHR vkGetDeviceFaultReportsKHR;
+	extern PFN_vkGetDeviceFaultDebugInfoKHR vkGetDeviceFaultDebugInfoKHR;
+#endif
+#endif
+#ifdef VK_EXT_pageable_device_local_memory
+	extern VkBool32 VKEW_EXT_pageable_device_local_memory;
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control 
 	extern VkBool32 VKEW_EXT_pipeline_creation_cache_control;

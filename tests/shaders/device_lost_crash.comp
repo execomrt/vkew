@@ -1,0 +1,38 @@
+#version 460
+
+// Crashy compute shader for tests/vkDeviceLost.cpp.
+// Dereferences a raw device address handed in through push constants:
+//   - an unmapped address            -> GPU page fault (write invalid)
+//   - spin != 0 on a valid address   -> never terminates, the OS watchdog (TDR) removes the device
+//   - a valid address, spin == 0     -> harmless single write
+
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference_uvec2 : require
+
+// volatile: the spin loop re-reads memory every iteration and cannot be folded away.
+layout(buffer_reference, std430, buffer_reference_align = 4)
+volatile buffer CrashBuffer
+{
+    uint value;
+};
+
+layout(push_constant) uniform CrashPush
+{
+    uvec2 address; // low, high 32 bits of the target device address
+    uint spin;
+    uint pad;
+} pc;
+
+layout(local_size_x = 1) in;
+
+void main()
+{
+    CrashBuffer target = CrashBuffer(pc.address);
+    if (pc.spin != 0u)
+    {
+        while (target.value != 0xDEADBEEFu)
+        {
+        }
+    }
+    target.value = 1u;
+}
